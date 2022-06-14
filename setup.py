@@ -26,6 +26,6 @@ setup(
         "tqdm",
         "opt-einsum",
         "matplotlib",
-        "lab @ git+https://git@github.com/aaronpmishkin/lab@main#egg=lab",
+        "lab @ git+https://git@github.com/aaronpmishkin/lab@icml_2022#egg=lab",
     ],
 )
