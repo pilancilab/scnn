@@ -1,11 +1,11 @@
 # Convex_nns
 
 A library for global optimization of shallow neural networks.
-API documentation at [ReadTheDocs](https://cvx-nn.readthedocs.io/en/latest/).
+API documentation at [ReadTheDocs](https://scnn.readthedocs.io/en/latest/).
 
 ### Requirements
 
-Python 3.8 or newer. The necessary dependencies are listed in `requirements.txt`. 
+Python 3.8 or newer. Development dependencies are listed in `dev_requirements.txt`. 
 
 ### Setup
 
@@ -15,25 +15,26 @@ Clone the repository using
 git clone https://github.com/aaronpmishkin/spring_rotation/tree/main/code/notebooks
 ```
 
-#### MacOS/Unix
+### Contributions
 
-Run the `setup.sh` file with
+Coming soon!
 
-```
-./setup.sh
-```
+### Citation
 
-This will:
-
-1. Create a virtual environment in `.venv` and install the project dependencies. 
-2. Install `scnn` in development mode.
-
-After running `setup.sh`, you need to activate the virtualenv using 
+Please cite our paper if you use this package.
 
 ```
-source .venv/bin/activate
-``` 
+@article{DBLP:journals/corr/abs-2202-01331,
+  author    = {Aaron Mishkin and
+               Arda Sahiner and
+               Mert Pilanci},
+  title     = {Fast Convex Optimization for Two-Layer ReLU Networks: Equivalent Model
+               Classes and Cone Decompositions},
+  journal   = {CoRR},
+  volume    = {abs/2202.01331},
+  year      = {2022},
+  url       = {https://arxiv.org/abs/2202.01331},
+}
+```
 
-#### Demo Notebooks
 
-`TODO: fill me in!`
