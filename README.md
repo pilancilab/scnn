@@ -1,4 +1,4 @@
-# `scnn` 
+# `scnn`: Scalable Convex Neural Networks 
 
 A library for global optimization of shallow neural networks.
 API documentation at [ReadTheDocs](https://scnn.readthedocs.io/en/latest/).
@@ -12,7 +12,7 @@ Python 3.8 or newer. Development dependencies are listed in `dev_requirements.tx
 Clone the repository using
 
 ```
-git clone https://github.com/aaronpmishkin/spring_rotation/tree/main/code/notebooks
+git clone https://github.com/pilancilab/scnn.git
 ```
 
 ### Contributions
