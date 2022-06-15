@@ -22,8 +22,6 @@ Coming soon!
 ### Citation
 
 Please cite our paper if you use this package.
-Looking for the code to replicate our experiments?
-See [scnn_experiments](https://github.com/aaronpmishkin/scnn_experiments).
 
 ```
 @article{DBLP:journals/corr/abs-2202-01331,
@@ -39,3 +37,5 @@ See [scnn_experiments](https://github.com/aaronpmishkin/scnn_experiments).
 }
 ```
 
+Looking for the code to replicate our experiments?
+See [scnn_experiments](https://github.com/aaronpmishkin/scnn_experiments).
