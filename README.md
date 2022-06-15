@@ -1,4 +1,4 @@
-# Convex_nns
+# `scnn` 
 
 A library for global optimization of shallow neural networks.
 API documentation at [ReadTheDocs](https://scnn.readthedocs.io/en/latest/).
@@ -22,6 +22,8 @@ Coming soon!
 ### Citation
 
 Please cite our paper if you use this package.
+Looking for the code to replicate our experiments?
+See [scnn_experiments](https://github.com/aaronpmishkin/scnn_experiments).
 
 ```
 @article{DBLP:journals/corr/abs-2202-01331,
@@ -36,5 +38,4 @@ Please cite our paper if you use this package.
   url       = {https://arxiv.org/abs/2202.01331},
 }
 ```
-
 

@@ -93,7 +93,7 @@ class AugmentedLagrangian(MetaOptimizer):
                 self.initializing_delta = False
         else:
             e_gap, i_gap = model.constraint_gaps(X)
-            gap_norm = lab.sum(e_gap ** 2) + lab.sum(i_gap ** 2)
+            gap_norm = lab.sum(e_gap**2) + lab.sum(i_gap**2)
 
             # TODO: sometimes the lower window leads to weird failure cases.
             if self.initializing_delta:
@@ -105,12 +105,12 @@ class AugmentedLagrangian(MetaOptimizer):
                     model.delta = self.delta
                 # the previous sub-problem made too much progress on the constraints;
                 # decrease penalty strength
-                # elif gap_norm < self.eta_lower:
-                #     self.delta = self.delta / self.tau
-                #     model.delta = self.delta
-                #     inner_term_criterion.tol = (
-                #         inner_term_criterion.tol / self.tau
-                #     )
+                elif gap_norm < self.eta_lower:
+                    self.delta = self.delta / self.tau
+                    model.delta = self.delta
+                    inner_term_criterion.tol = (
+                        inner_term_criterion.tol / self.tau
+                    )
                 else:
                     # gap within starting "window".
                     self.initializing_delta = False
