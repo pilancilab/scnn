@@ -9,10 +9,17 @@ Python 3.8 or newer. Development dependencies are listed in `dev_requirements.tx
 
 ### Setup
 
-Clone the repository using
+Install using `pip`:
+
+```
+python -m pip install pyscnn
+```
+
+Or, clone the repository and manually install: 
 
 ```
 git clone https://github.com/pilancilab/scnn.git
+python -m pip install scnn
 ```
 
 ### Contributions
