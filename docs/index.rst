@@ -5,7 +5,7 @@ scnn
 
 .. code:: bash
 
-   pip install scnn
+   pip install pyscnn
 
 The project is open-source and the code is available on `Github <https://github.com/pilancilab/scnn>`_.
 
