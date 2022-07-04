@@ -2,8 +2,10 @@
 
 TODO:
     - extract types into a new `types.py` module.
+
     - use_bias: update mapping for convex/non-convex models to support bias
-    terms without data augmentation.
+        terms without data augmentation.
+
 """
 import math
 import os
@@ -68,9 +70,9 @@ def optimize(
     Args:
         formulation: the convex reformulation to solve. Must be one of
 
-            - `"gated_relu"` - train a network with Gated ReLU activations.
+            - `"gated_relu"`: train a network with Gated ReLU activations.
 
-            - `"relu"` - train a network with ReLU activations.
+            - `"relu"`: train a network with ReLU activations.
 
         max_neurons: the maximum number of neurons in the convex reformulation.
         X_train: an :math:`n \\times d` matrix of training examples.
@@ -365,9 +367,7 @@ def optimize_path(
         if return_convex:
             model_to_save = update_public_model(model, internal_model)
         else:
-            nc_internal_model = get_nc_formulation(
-                internal_model, remove_sparse=True
-            )
+            nc_internal_model = get_nc_formulation(internal_model, remove_sparse=True)
             model_to_save = build_public_model(nc_internal_model, model.bias)
 
         if save_path is not None:
