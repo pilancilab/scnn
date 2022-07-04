@@ -20,9 +20,7 @@ class ProximalOperator:
 
     """Base class for proximal operators."""
 
-    def __call__(
-        self, w: lab.Tensor, beta: Optional[float] = None
-    ) -> lab.Tensor:
+    def __call__(self, w: lab.Tensor, beta: Optional[float] = None) -> lab.Tensor:
         """Evaluate the proximal_operator.
 
         :param w: parameters to which apply the operator will be applied.
@@ -30,9 +28,7 @@ class ProximalOperator:
         :returns: prox(w)
         """
 
-        raise NotImplementedError(
-            "A proximal operator must implement '__call__'!"
-        )
+        raise NotImplementedError("A proximal operator must implement '__call__'!")
 
 
 class Identity(ProximalOperator):
@@ -41,9 +37,7 @@ class Identity(ProximalOperator):
     This proximal-operator always returns the input point.
     """
 
-    def __call__(
-        self, w: lab.Tensor, beta: Optional[float] = None
-    ) -> lab.Tensor:
+    def __call__(self, w: lab.Tensor, beta: Optional[float] = None) -> lab.Tensor:
         """Evaluate the identity operator.
 
         Args:
@@ -146,7 +140,7 @@ class GroupL1(Regularizer):
             prox(w), the result of the proximal operator.
         """
         # compute the squared norms of each group.
-        norms = lab.sqrt(lab.sum(w ** 2, axis=-1, keepdims=True))
+        norms = lab.sqrt(lab.sum(w**2, axis=-1, keepdims=True))
 
         w_plus = lab.multiply(
             lab.safe_divide(w, norms), lab.smax(norms - self.lam * beta, 0)
@@ -188,7 +182,7 @@ class FeatureGroupL1(Regularizer):
 
         norms = lab.sqrt(
             lab.sum(
-                w ** 2,
+                w**2,
                 axis=tuple(range(len(w.shape) - 1)),
                 keepdims=True,
             )
@@ -223,9 +217,7 @@ class Orthant(ProximalOperator):
         else:
             self.sum_string = "kj,imjk->imjk"
 
-    def __call__(
-        self, w: lab.Tensor, beta: Optional[float] = None
-    ) -> lab.Tensor:
+    def __call__(self, w: lab.Tensor, beta: Optional[float] = None) -> lab.Tensor:
         """
         w: parameters to which the projection will be applied.
             This should be a (k x c x p x d) array, where each element of axis -1 corresponds to one column of A.
@@ -266,8 +258,8 @@ class GroupL1Orthant(Regularizer):
         :returns: updated parameters.
         """
         model_weights, slacks = w[:, :, :, : self.d], w[:, :, :, self.d :]
-        w_plus, s_plus = self.group_prox(
-            model_weights, beta
-        ), self.orthant_proj(slacks, beta)
+        w_plus, s_plus = self.group_prox(model_weights, beta), self.orthant_proj(
+            slacks, beta
+        )
 
         return lab.concatenate([w_plus, s_plus], axis=-1)
