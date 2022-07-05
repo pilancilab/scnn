@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyscnn"
-version = "0.0.3-beta"
+version = "0.0.4-beta"
 authors = [
   { name="Aaron Mishkin", email="amishkin@cs.stanford.edu" },
 ]
