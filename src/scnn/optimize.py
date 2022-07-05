@@ -11,7 +11,8 @@ import math
 import os
 import pickle as pkl
 from copy import deepcopy
-from typing import List, Literal, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
+from typing_extensions import Literal
 
 import numpy as np
 

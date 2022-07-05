@@ -29,7 +29,8 @@ TODO:
     - Where to put ugly conv mask code?
 """
 
-from typing import Tuple, List, Literal, Optional
+from typing import Tuple, List, Optional
+from typing_extensions import Literal
 import math
 from itertools import combinations
 

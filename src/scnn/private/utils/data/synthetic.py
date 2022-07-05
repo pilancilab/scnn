@@ -12,7 +12,8 @@ Public Functions:
         simple feature-sparse planted models.
 """
 
-from typing import Tuple, Literal, Optional, Union, Callable
+from typing import Tuple, Optional, Union, Callable
+from typing_extensions import Literal
 import math
 
 import numpy as np
@@ -202,7 +203,7 @@ def gen_sparse_regression_problem(
         y = np.cos(y)
     elif transform == "cubic":
         # simple cubic
-        y = y + (y ** 2) / 2 + (y ** 3) / 6
+        y = y + (y**2) / 2 + (y**3) / 6
     elif transform == "product":
         y = np.sign(np.prod(X[:, non_zero_indices], axis=1))
     else:

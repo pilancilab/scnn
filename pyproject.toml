@@ -23,6 +23,7 @@ dependencies = [
     "cvxpy>=1.2.1",
     "scikit-learn>=1.0.0",
     "scipy>=1.7.2",
+    "typing_extensions",
     "tqdm",
     "opt_einsum",
     "linalg_backends"
