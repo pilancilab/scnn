@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyscnn"
-version = "0.0.2-beta"
+version = "0.0.3-beta"
 authors = [
   { name="Aaron Mishkin", email="amishkin@cs.stanford.edu" },
 ]
@@ -21,8 +21,8 @@ dependencies = [
     "numpy>=1.21.3",
     "torch>=1.10.0",
     "cvxpy>=1.2.1",
-    "scikit-learn>=1.1.0",
-    "scipy>=1.8.0",
+    "scikit-learn>=1.0.0",
+    "scipy>=1.7.2",
     "tqdm",
     "opt_einsum",
     "linalg_backends"

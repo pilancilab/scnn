@@ -59,16 +59,14 @@ def sample_gate_vectors(
         n_samples: the number of samples to use.
         gate_type: the type of gates to sample. Must be one of:
 
-            - 'dense': sample dense gate vectors.
+            - `'dense'`: sample dense gate vectors.
 
-            - 'feature_sparse': sample gate vectors which are sparse in
+            - `'feature_sparse'`: sample gate vectors which are sparse in
                 specific features.
 
         order: the maximum order of feature sparsity to consider.
             Only used for `gate_type='feature_sparse'`. See
             :func:`sample_sparse_gates` for more details.
-        use_bias: whether or not to include a fixed column of ones in the gate
-            vectors to implement a bias term.
 
     Notes:
         It is possible to obtain more than `n_samples` gate vectors when
@@ -233,9 +231,7 @@ def compute_activation_patterns(
         assert np.all(X[:, -1] == X[0, -1])
 
         # set bias terms in G
-        quantiles = np.quantile(
-            XG, q=1 - active_proportion, axis=0, keepdims=True
-        )
+        quantiles = np.quantile(XG, q=1 - active_proportion, axis=0, keepdims=True)
         XG = XG - quantiles
         G = G.copy()
         G[-1] = -np.ravel(quantiles)
@@ -294,9 +290,7 @@ def _generate_conv_masks(
     upper_left_coords = rng.integers(
         low=0, high=image_size - kernel_size - 1, size=(num_samples, 2)
     )
-    upper_left_indices = (
-        image_size * upper_left_coords[:, 0] + upper_left_coords[:, 1]
-    )
+    upper_left_indices = image_size * upper_left_coords[:, 0] + upper_left_coords[:, 1]
     upper_rows = [
         np.arange(upper_left_indices[i], upper_left_indices[i] + kernel_size)
         for i in range(num_samples)
@@ -319,15 +313,15 @@ def _generate_conv_masks(
             [
                 np.arange(
                     first_patch[i][j],
-                    first_patch[i][j] + channels * image_size ** 2,
-                    image_size ** 2,
+                    first_patch[i][j] + channels * image_size**2,
+                    image_size**2,
                 )
-                for j in range(kernel_size ** 2)
+                for j in range(kernel_size**2)
             ]
         ).tolist()
         for i in range(num_samples)
     ]
-    mask = np.zeros((num_samples, channels * image_size ** 2))
+    mask = np.zeros((num_samples, channels * image_size**2))
 
     def _transpose(x):
         dims = np.arange(len(x.shape))
