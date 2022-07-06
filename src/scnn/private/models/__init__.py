@@ -29,6 +29,7 @@ from .regularizers import (
     L1Regularizer,
     OrthantConstraint,
     L1SquaredRegularizer,
+    CardinalityConstraint,
 )
 
 from .solution_mappings import (
@@ -59,6 +60,7 @@ __all__ = [
     "L1Regularizer",
     "L1SquaredRegularizer",
     "OrthantConstraint",
+    "CardinalityConstraint",
     "is_compatible",
     "get_nc_formulation",
 ]

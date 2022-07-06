@@ -9,6 +9,8 @@ from .l2 import L2Regularizer
 from .l1 import L1Regularizer
 from .orthant import OrthantConstraint
 from .l1_squared import L1SquaredRegularizer
+from .cardinality_constraint import CardinalityConstraint
+
 
 __all__ = [
     "Regularizer",
@@ -20,4 +22,5 @@ __all__ = [
     "L1Regularizer",
     "OrthantConstraint",
     "L1SquaredRegularizer",
+    "CardinalityConstraint",
 ]
