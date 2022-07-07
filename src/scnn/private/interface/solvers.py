@@ -9,13 +9,13 @@ from scnn.private.methods import (
     FISTA,
     AugmentedLagrangian,
     ConstrainedHeuristic,
-    LagrangianGradNorm,
     CVXPYGatedReLUSolver,
     CVXPYReLUSolver,
+    CVXPYExactSparsitySolver,
+    CVXPYRelaxedSparsitySolver,
     DoubleLoopProcedure,
     GradientNorm,
     IterativeOptimizationProcedure,
-    LagrangianGradNorm,
     Lassplore,
     LinearSolver,
     MultiplicativeBacktracker,
@@ -35,8 +35,8 @@ from scnn.solvers import (
 )
 
 from scnn.models import ConvexGatedReLU, ConvexReLU
-from scnn.regularizers import NeuronGL1
 from scnn.private.interface import build_internal_regularizer
+from scnn.regularizers import CardinalityConstraint
 
 
 def build_prox_operator(
@@ -67,9 +67,7 @@ def build_prox_operator(
     elif regularizer is None:
         op = prox.Identity()
     else:
-        raise ValueError(
-            f"Optimizer does not support regularizer {regularizer}."
-        )
+        raise ValueError(f"Optimizer does not support regularizer {regularizer}.")
 
     return op
 
@@ -137,7 +135,6 @@ def build_optimizer(
         outer_term_criterion = ConstrainedHeuristic(
             optimizer.tol, optimizer.constraint_tol
         )
-        # outer_term_criterion = LagrangianGradNorm(optimizer.tol)
 
         sub_opt = build_fista(regularizer)
         opt = AugmentedLagrangian(
@@ -176,14 +173,28 @@ def build_optimizer(
             prox = build_prox_operator(regularizer)
             post_process = ProximalCleanup(prox)
 
-        if isinstance(model, ConvexReLU):
-            opt = CVXPYReLUSolver(optimizer.solver, optimizer.solver_kwargs)
-        elif isinstance(model, ConvexGatedReLU):
-            opt = CVXPYGatedReLUSolver(
-                optimizer.solver, optimizer.solver_kwargs
-            )
+        if isinstance(regularizer, CardinalityConstraint):
+            if optimizer.relaxation:  # solve relaxation
+                opt = CVXPYRelaxedSparsitySolver(
+                    optimizer.solver, optimizer.solver_kwargs
+                )
+            else:
+                opt = CVXPYExactSparsitySolver(
+                    optimizer.solver, optimizer.solver_kwargs
+                )
         else:
-            raise ValueError(f"Model {model} not recognized by CVXPYSolver.")
+            if isinstance(model, ConvexReLU):
+                opt = CVXPYReLUSolver(
+                    optimizer.solver,
+                    optimizer.solver_kwargs,
+                )
+            elif isinstance(model, ConvexGatedReLU):
+                opt = CVXPYGatedReLUSolver(
+                    optimizer.solver,
+                    optimizer.solver_kwargs,
+                )
+            else:
+                raise ValueError(f"Model {model} not recognized by CVXPYSolver.")
 
         opt_proc = OptimizationProcedure(opt, post_process=post_process)
 

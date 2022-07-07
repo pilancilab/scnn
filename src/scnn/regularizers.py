@@ -82,3 +82,21 @@ class L1(Regularizer):
 
     def __str__(self):
         return f"l1_{self.lam}"
+
+
+class CardinalityConstraint(Regularizer):
+    """Experimental cardinality constraint.
+
+    Attributes:
+        lam: the regularization strength.
+        M: magnitude constraint.
+        b: cardinality bound.
+    """
+
+    def __init__(self, lam: float, M: float, b: int):
+        self.lam = lam
+        self.M = M
+        self.b = b
+
+    def __str__(self):
+        return f"cardinality_{self.lam}_{self.M}_{self.b}"

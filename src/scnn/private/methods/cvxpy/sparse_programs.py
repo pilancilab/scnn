@@ -34,9 +34,11 @@ class CVXPYExactSparsitySolver(ConvexReformulationSolver):
         self, W: cp.Variable, E: cp.Variable, M: float
     ) -> List[cp.Expression]:
         """Generate cardinality constraints."""
-
         return [
-            cp.abs(W[i, j]) <= M * E[j]
+            W[i, j] <= M * E[j]
+            for i, j in product(range(self.p * self.c), range(self.d))
+        ] + [
+            -W[i, j] <= M * E[j]
             for i, j in product(range(self.p * self.c), range(self.d))
         ]
 
@@ -116,7 +118,7 @@ class CVXPYExactSparsitySolver(ConvexReformulationSolver):
         return model, exit_status
 
 
-class CVXPYRelaxedSparsitySolver(ConvexReformulationSolver):
+class CVXPYRelaxedSparsitySolver(CVXPYExactSparsitySolver):
     """CVXPY-based solver for convex reformulations with exact feature sparsity.
 
     Note that the resulting problem is a mixed-integer program.

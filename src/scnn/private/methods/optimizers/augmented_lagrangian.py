@@ -105,12 +105,13 @@ class AugmentedLagrangian(MetaOptimizer):
                     model.delta = self.delta
                 # the previous sub-problem made too much progress on the constraints;
                 # decrease penalty strength
-                elif gap_norm < self.eta_lower:
-                    self.delta = self.delta / self.tau
-                    model.delta = self.delta
-                    inner_term_criterion.tol = (
-                        inner_term_criterion.tol / self.tau
-                    )
+                # elif gap_norm < self.eta_lower:
+                #     self.delta = self.delta / self.tau
+                #     model.delta = self.delta
+                #     inner_term_criterion.tol = (
+                #         inner_term_criterion.tol / self.tau
+                #     )
+
                 else:
                     # gap within starting "window".
                     self.initializing_delta = False
@@ -129,9 +130,7 @@ class AugmentedLagrangian(MetaOptimizer):
                 # mechanism for tightening solution tolerances.
                 if self.tau * gap_norm < inner_term_criterion.tol:
                     # reduce tolerance to ensure continued progress.
-                    inner_term_criterion.tol = (
-                        inner_term_criterion.tol / self.tau
-                    )
+                    inner_term_criterion.tol = inner_term_criterion.tol / self.tau
 
         inner_optimizer.reset()
         exit_status: Dict[str, Any] = {}
