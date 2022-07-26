@@ -94,8 +94,11 @@ def build_internal_model(
 
     D, G = lab.all_to_tensor(
         compute_activation_patterns(
-            lab.to_np(X_train), model.G, bias=model.bias
-        )
+            lab.to_np(X_train),
+            model.G,
+            bias=model.bias,
+        ),
+        dtype=lab.get_dtype(),
     )
 
     if isinstance(model, ConvexReLU):
@@ -109,9 +112,7 @@ def build_internal_model(
             c=c,
         )
     elif isinstance(model, ConvexGatedReLU):
-        internal_model = ConvexMLP(
-            d, D, G, "einsum", regularizer=internal_reg, c=c
-        )
+        internal_model = ConvexMLP(d, D, G, "einsum", regularizer=internal_reg, c=c)
     else:
         raise ValueError(f"Model object {model} not supported.")
 
@@ -162,9 +163,7 @@ def update_public_model(model: Model, internal_model: InternalModel) -> Model:
     if isinstance(model, ConvexGatedReLU):
         assert isinstance(internal_model, ConvexMLP)
         model.set_parameters(extract_bias(internal_model.weights, model.bias))
-        model.G, model.G_bias = extract_gates_bias(
-            internal_model.U, model.bias
-        )
+        model.G, model.G_bias = extract_gates_bias(internal_model.U, model.bias)
     elif isinstance(model, ConvexReLU):
         assert isinstance(internal_model, AL_MLP)
         model.set_parameters(
@@ -172,9 +171,7 @@ def update_public_model(model: Model, internal_model: InternalModel) -> Model:
             + extract_bias(internal_model.weights[1], model.bias)
         )
 
-        model.G, model.G_bias = extract_gates_bias(
-            internal_model.U, model.bias
-        )
+        model.G, model.G_bias = extract_gates_bias(internal_model.U, model.bias)
     elif isinstance(model, LinearModel):
         model.set_parameters(extract_bias(internal_model.weights, model.bias))
 
@@ -197,9 +194,7 @@ def build_public_model(
     model: Model
     if isinstance(internal_model, GatedReLUMLP):
         G, G_bias = extract_gates_bias(internal_model.U, bias)
-        model = NonConvexGatedReLU(
-            G, internal_model.c, bias=bias, G_bias=G_bias
-        )
+        model = NonConvexGatedReLU(G, internal_model.c, bias=bias, G_bias=G_bias)
         w1, w2 = internal_model._split_weights(internal_model.weights)
         parameters = extract_bias(w1, bias) + extract_bias(w2, False)
         model.set_parameters(parameters)
