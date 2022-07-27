@@ -263,7 +263,6 @@ class CVXPYSolver(Optimizer):
         solver,
         solver_kwargs={},
         clean_sol=False,
-        relaxation: bool = False,
     ):
         """
         Args:
@@ -281,8 +280,6 @@ class CVXPYSolver(Optimizer):
             clean_sol: whether or not to clean the solution using a
                 proximal-gradient step. This is only supported for Gated ReLU
                 problems.
-            relaxation: whether or not to solve a relaxation (if one exists).
-
         """
         super().__init__(model)
 
@@ -301,7 +298,6 @@ class CVXPYSolver(Optimizer):
         self.solver = solver
         self.solver_kwargs = solver_kwargs
         self.clean_sol = clean_sol
-        self.relaxation = relaxation
 
     def cpu_only(self) -> bool:
         return True

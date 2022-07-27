@@ -11,8 +11,6 @@ from scnn.private.methods import (
     ConstrainedHeuristic,
     CVXPYGatedReLUSolver,
     CVXPYReLUSolver,
-    CVXPYExactSparsitySolver,
-    CVXPYRelaxedSparsitySolver,
     DoubleLoopProcedure,
     GradientNorm,
     IterativeOptimizationProcedure,
@@ -173,28 +171,18 @@ def build_optimizer(
             prox = build_prox_operator(regularizer)
             post_process = ProximalCleanup(prox)
 
-        if isinstance(regularizer, CardinalityConstraint):
-            if optimizer.relaxation:  # solve relaxation
-                opt = CVXPYRelaxedSparsitySolver(
-                    optimizer.solver, optimizer.solver_kwargs
-                )
-            else:
-                opt = CVXPYExactSparsitySolver(
-                    optimizer.solver, optimizer.solver_kwargs
-                )
+        if isinstance(model, ConvexReLU):
+            opt = CVXPYReLUSolver(
+                optimizer.solver,
+                optimizer.solver_kwargs,
+            )
+        elif isinstance(model, ConvexGatedReLU):
+            opt = CVXPYGatedReLUSolver(
+                optimizer.solver,
+                optimizer.solver_kwargs,
+            )
         else:
-            if isinstance(model, ConvexReLU):
-                opt = CVXPYReLUSolver(
-                    optimizer.solver,
-                    optimizer.solver_kwargs,
-                )
-            elif isinstance(model, ConvexGatedReLU):
-                opt = CVXPYGatedReLUSolver(
-                    optimizer.solver,
-                    optimizer.solver_kwargs,
-                )
-            else:
-                raise ValueError(f"Model {model} not recognized by CVXPYSolver.")
+            raise ValueError(f"Model {model} not recognized by CVXPYSolver.")
 
         opt_proc = OptimizationProcedure(opt, post_process=post_process)
 

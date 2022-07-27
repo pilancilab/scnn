@@ -11,11 +11,6 @@ from .training_programs import (
     CVXPYReLUSolver,
 )
 
-from .sparse_programs import (
-    CVXPYExactSparsitySolver,
-    CVXPYRelaxedSparsitySolver,
-)
-
 from .cone_decomposition import (
     MinL2Decomposition,
     MinL1Decomposition,
@@ -34,6 +29,4 @@ __all__ = [
     "FeasibleDecomposition",
     "MinRelaxedL2Decomposition",
     "SOCPDecomposition",
-    "CVXPYExactSparsitySolver",
-    "CVXPYRelaxedSparsitySolver",
 ]

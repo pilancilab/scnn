@@ -13,7 +13,6 @@ from scnn.regularizers import (
     FeatureGL1,
     L2,
     L1,
-    CardinalityConstraint,
 )
 
 from scnn.models import (
@@ -40,7 +39,6 @@ from scnn.activations import compute_activation_patterns
 
 from scnn.private.models import Model as InternalModel
 from scnn.private.models import Regularizer as InternalRegularizer
-from scnn.private.models import CardinalityConstraint as PCardinalityConstraint
 
 
 def build_internal_regularizer(
@@ -68,8 +66,6 @@ def build_internal_regularizer(
         reg = L2Regularizer(lam)
     elif isinstance(regularizer, L1):
         reg = L1Regularizer(lam)
-    elif isinstance(regularizer, CardinalityConstraint):
-        reg = PCardinalityConstraint(lam, regularizer.M, regularizer.b)
 
     return reg
 
