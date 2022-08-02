@@ -5,6 +5,7 @@ TODO:
 """
 
 import lab
+import numpy as np
 
 from scnn.private.utils.data.transforms import (
     unitize_columns,
@@ -73,26 +74,16 @@ def process_data(
     """
     # convert from input format into list of lists.
 
-    X_train, y_train = [
-        lab.tensor(to_list(v), dtype=lab.get_dtype())
-        for v in [X_train, y_train]
-    ]
-
     if X_test is None or y_test is None:
         assert X_test is None and y_test is None
         # spoof test data with training set
         X_test = X_train
         y_test = y_train
-    else:
-        X_test, y_test = [
-            lab.tensor(to_list(v), dtype=lab.get_dtype())
-            for v in [X_test, y_test]
-        ]
 
     # add extra target dimension if necessary
     if len(y_train.shape) == 1:
-        y_train = lab.expand_dims(y_train, axis=1)
-        y_test = lab.expand_dims(y_test, axis=1)
+        y_train = np.expand_dims(y_train, axis=1)
+        y_test = np.expand_dims(y_test, axis=1)
 
     train_set, test_set, col_norms = (X_train, y_train), (X_test, y_test), None
 
@@ -101,6 +92,11 @@ def process_data(
 
     if unitize_data:
         train_set, test_set, col_norms = unitize_columns(train_set, test_set)
+        col_norms = lab.tensor(col_norms, dtype=lab.get_dtype())
+
+    train_set = [lab.tensor(to_list(v), dtype=lab.get_dtype()) for v in train_set]
+
+    test_set = [lab.tensor(to_list(v), dtype=lab.get_dtype()) for v in test_set]
 
     return train_set, test_set, col_norms
 

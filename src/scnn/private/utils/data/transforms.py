@@ -11,11 +11,10 @@ TODO:
 
 from typing import Tuple, Optional
 
-import lab
 import numpy as np
 
 
-Dataset = Tuple[lab.Tensor, lab.Tensor]
+Dataset = Tuple[np.ndarray, np.ndarray]
 
 
 def add_bias_col(dataset: Dataset) -> Dataset:
@@ -27,7 +26,7 @@ def add_bias_col(dataset: Dataset) -> Dataset:
 
     X, y = dataset
 
-    X = lab.concatenate([X, lab.ones((X.shape[0], 1))], axis=1)
+    X = np.concatenate([X, np.ones((X.shape[0], 1))], axis=1)
 
     return (X, y)
 
@@ -35,7 +34,7 @@ def add_bias_col(dataset: Dataset) -> Dataset:
 def unitize_columns(
     train_set: Dataset,
     test_set: Optional[Dataset] = None,
-) -> Tuple[Dataset, Dataset, lab.Tensor]:
+) -> Tuple[Dataset, Dataset, np.ndarray]:
     """Transform a dataset so that the columns of the design matrix have unit
     norm,
 
@@ -55,7 +54,7 @@ def unitize_columns(
     """
 
     X_train = train_set[0]
-    column_norms = lab.sqrt(lab.sum(X_train ** 2, axis=0, keepdims=True))
+    column_norms = np.sqrt(np.sum(X_train**2, axis=0, keepdims=True))
 
     X_train = X_train / column_norms
     train_set = (X_train, train_set[1])
