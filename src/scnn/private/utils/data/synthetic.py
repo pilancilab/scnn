@@ -283,6 +283,10 @@ def gen_sparse_nn_problem(
         yi = np.maximum(f_xi @ w1.T, 0) @ w2.T
         y.append(yi)
         X.append(xi)
+    
+    # Add noise to problem.
+    if sigma != 0:
+        y = y + rng.normal(0, scale=sigma)
 
     X_np = np.array(X)
     y_np = np.array(y).reshape(-1, 1)
