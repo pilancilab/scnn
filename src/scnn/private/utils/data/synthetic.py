@@ -134,7 +134,7 @@ def gen_regression_data(
     y = np.dot(X, w_opt)
 
     if sigma != 0:
-        y = y + rng.normal(0, scale=sigma)
+        y = y + rng.normal(0, scale=sigma, size=y.shape)
 
     train_set = (X[:n], y[:n])
     test_set = (X[n:], y[n:])
@@ -217,7 +217,7 @@ def gen_sparse_regression_problem(
 
     # add noise
     if sigma != 0:
-        y = y + rng.normal(0, scale=sigma)
+        y = y + rng.normal(0, scale=sigma, size=y.shape)
 
     train_set = (X[:n], y[:n])
     test_set = (X[n:], y[n:])
@@ -283,13 +283,14 @@ def gen_sparse_nn_problem(
         yi = np.maximum(f_xi @ w1.T, 0) @ w2.T
         y.append(yi)
         X.append(xi)
-    
+
     # Add noise to problem.
-    if sigma != 0:
-        y = y + rng.normal(0, scale=sigma)
 
     X_np = np.array(X)
     y_np = np.array(y).reshape(-1, 1)
+
+    if sigma != 0:
+        y_np = y_np + rng.normal(0, scale=sigma, size=y_np.shape)
 
     # shuffle dataset.
     indices = np.arange(n + n_test)
