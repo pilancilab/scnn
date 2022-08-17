@@ -35,8 +35,8 @@ from .regularizers import (
 )
 
 from .solution_mappings import (
-    is_compatible,
-    get_nc_formulation,
+    grelu_solution_mapping,
+    relu_solution_mapping,
 )
 
 
@@ -65,6 +65,6 @@ __all__ = [
     "L1SquaredRegularizer",
     "OrthantConstraint",
     "CardinalityConstraint",
-    "is_compatible",
-    "get_nc_formulation",
+    "grelu_solution_mapping",
+    "relu_solution_mapping",
 ]
