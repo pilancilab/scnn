@@ -282,7 +282,7 @@ def get_nc_formulation(
 
         nc_model.set_parameters(parameters + skip_weights)
 
-    elif isinstance(model, LinearModel):
+    elif isinstance(internal_model, LinearRegression):
         nc_model = LinearModel(internal_model.d, internal_model.c, bias=bias)
         nc_model.parameters = extract_bias(internal_model.weights, bias)
     else:

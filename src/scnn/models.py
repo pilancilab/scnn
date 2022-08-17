@@ -179,7 +179,7 @@ class LinearModel(Model):
 
         self.parameters = parameters
 
-    def __call__(self, X: np.ndarray) -> np.ndarray:
+    def __call__(self, X: np.ndarray, **kwargs) -> np.ndarray:
         """Compute the model predictions for a given dataset.
 
         Args:
@@ -279,7 +279,7 @@ class ConvexGatedReLU(GatedModel):
 
         self.parameters = parameters
 
-    def __call__(self, X: np.ndarray) -> np.ndarray:
+    def __call__(self, X: np.ndarray, **kwargs) -> np.ndarray:
         """Compute the model predictions for a given dataset.
 
         Args:
@@ -397,7 +397,7 @@ class NonConvexGatedReLU(GatedModel):
 
         self.parameters = parameters
 
-    def __call__(self, X: np.ndarray) -> np.ndarray:
+    def __call__(self, X: np.ndarray, **kwargs) -> np.ndarray:
         """Compute the model predictions for a given dataset.
 
         Args:
@@ -512,7 +512,7 @@ class ConvexReLU(GatedModel):
 
         self.parameters = parameters
 
-    def __call__(self, X: np.ndarray) -> np.ndarray:
+    def __call__(self, X: np.ndarray, **kwargs) -> np.ndarray:
         """Compute the model predictions for a given dataset.
 
         Args:
@@ -629,7 +629,7 @@ class NonConvexReLU(Model):
 
         self.parameters = parameters
 
-    def __call__(self, X: np.ndarray) -> np.ndarray:
+    def __call__(self, X: np.ndarray, **kwargs) -> np.ndarray:
         """Compute the model predictions for a given dataset.
 
         Args:
