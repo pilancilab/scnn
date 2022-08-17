@@ -248,7 +248,7 @@ def optimize_model(
     if return_convex:
         return_model = update_public_model(model, internal_model)
     else:
-        return_model = get_nc_formulation(model, internal_model)
+        return_model = get_nc_formulation(internal_model)
 
     return (
         return_model,
@@ -372,7 +372,7 @@ def optimize_path(
         if return_convex:
             model_to_save = update_public_model(model, internal_model)
         else:
-            model_to_save = get_nc_formulation(model, internal_model)
+            model_to_save = get_nc_formulation(internal_model)
 
         if save_path is not None:
 

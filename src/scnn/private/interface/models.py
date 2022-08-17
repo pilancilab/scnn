@@ -128,6 +128,9 @@ def build_internal_model(
     else:
         raise ValueError(f"Model object {model} not supported.")
 
+    internal_model._bias = model.bias
+    internal_model._skip_connection = model.skip_connection
+
     return internal_model
 
 
@@ -222,7 +225,6 @@ def update_public_model(model: Model, internal_model: InternalModel) -> Model:
 
 
 def get_nc_formulation(
-    model: Model,
     internal_model: InternalModel,
 ) -> Model:
     """Construct a public-facing model from an internal model representation.
@@ -234,15 +236,16 @@ def get_nc_formulation(
     Returns:
         A public-facing model with identical state.
     """
-    bias = model.bias
+    bias = internal_model._bias
+    skip_connection = internal_model._skip_connection
 
     nc_model: Model
 
-    if isinstance(model, ConvexGatedReLU):
+    if not isinstance(internal_model, AL_MLP):
 
         weights, skip_weights = extract_skip_connection(
             internal_model,
-            model.skip_connection,
+            skip_connection,
         )
 
         w1, w2, G = grelu_solution_mapping(
@@ -257,12 +260,15 @@ def get_nc_formulation(
         parameters = extract_bias(w1, bias) + extract_bias(w2, False)
         nc_model.set_parameters(parameters + skip_weights)
 
-    elif isinstance(model, ConvexReLU):
-        d = model.d
+    elif isinstance(internal_model, ConvexReLU):
+        d = internal_model.d
+
+        if bias:
+            d = d - 1
 
         weights, skip_weights = extract_skip_connection(
             internal_model,
-            model.skip_connection,
+            skip_connection,
         )
 
         w1, w2, G = relu_solution_mapping(
