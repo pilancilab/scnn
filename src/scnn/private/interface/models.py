@@ -250,11 +250,11 @@ def get_nc_formulation(
 
         w1, w2, G = grelu_solution_mapping(
             weights,
-            internal_model.G,
+            internal_model.U,
             remove_sparse=True,
         )
 
-        G, G_bias = extract_gates_bias(internal_model.U, bias)
+        G, G_bias = extract_gates_bias(G, bias)
         nc_model = NonConvexGatedReLU(G, internal_model.c, bias=bias, G_bias=G_bias)
 
         parameters = extract_bias(w1, bias) + extract_bias(w2, False)
@@ -271,9 +271,9 @@ def get_nc_formulation(
             skip_connection,
         )
 
-        w1, w2, G = relu_solution_mapping(
+        w1, w2 = relu_solution_mapping(
             weights,
-            internal_model.G,
+            internal_model.U,
             remove_sparse=True,
         )
 
