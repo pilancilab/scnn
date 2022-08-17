@@ -24,7 +24,7 @@ from scnn.private.interface import (
     build_internal_regularizer,
     build_metrics_tuple,
     build_optimizer,
-    build_public_model,
+    get_nc_formulation,
     get_logger,
     normalized_into_input_space,
     process_data,
@@ -32,7 +32,6 @@ from scnn.private.interface import (
     update_public_metrics,
     update_public_model,
 )
-from scnn.private.models.solution_mappings import get_nc_formulation
 from scnn.regularizers import Regularizer
 from scnn.solvers import (
     AL,
@@ -247,14 +246,12 @@ def optimize_model(
         )
 
     if return_convex:
-        return update_public_model(model, internal_model), metrics
+        return_model = update_public_model(model, internal_model)
+    else:
+        return_model = get_nc_formulation(model, internal_model)
 
-    # convert into internal non-convex model
-    nc_internal_model = get_nc_formulation(internal_model, remove_sparse=True)
-
-    # create non-convex model
     return (
-        build_public_model(nc_internal_model, model.bias),
+        return_model,
         metrics,
         exit_status,
     )
@@ -375,8 +372,7 @@ def optimize_path(
         if return_convex:
             model_to_save = update_public_model(model, internal_model)
         else:
-            nc_internal_model = get_nc_formulation(internal_model, remove_sparse=True)
-            model_to_save = build_public_model(nc_internal_model, model.bias)
+            model_to_save = get_nc_formulation(model, internal_model)
 
         if save_path is not None:
 

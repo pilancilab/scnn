@@ -11,7 +11,7 @@ from .models import (
     build_internal_regularizer,
     build_internal_model,
     update_public_model,
-    build_public_model,
+    get_nc_formulation,
 )
 
 from .solvers import (
@@ -37,7 +37,7 @@ __all__ = [
     "build_internal_regularizer",
     "build_internal_model",
     "update_public_model",
-    "build_public_model",
+    "get_nc_formulation",
     "build_prox_operator",
     "build_fista",
     "build_optimizer",

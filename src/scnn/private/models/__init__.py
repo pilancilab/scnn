@@ -13,6 +13,8 @@ from .non_convex import (
 from .convex import (
     ConvexMLP,
     AL_MLP,
+    SkipMLP,
+    SkipALMLP,
 )
 
 from .decompositions import QuadraticDecomposition
@@ -48,7 +50,9 @@ __all__ = [
     "GatedReLUMLP",
     "GatedReLULayer",
     "ConvexMLP",
+    "SkipMLP",
     "AL_MLP",
+    "SkipALMLP",
     "QuadraticDecomposition",
     "OneVsAllModel",
     "Regularizer",

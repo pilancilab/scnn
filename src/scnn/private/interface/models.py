@@ -26,14 +26,16 @@ from scnn.models import (
 
 from scnn.private.models import (
     ConvexMLP,
+    SkipMLP,
     AL_MLP,
-    ReLUMLP,
-    GatedReLUMLP,
+    SkipALMLP,
     GroupL1Regularizer,
     FeatureGroupL1Regularizer,
     L2Regularizer,
     L1Regularizer,
     LinearRegression,
+    grelu_solution_mapping,
+    relu_solution_mapping,
 )
 from scnn.activations import compute_activation_patterns
 
@@ -102,7 +104,12 @@ def build_internal_model(
     )
 
     if isinstance(model, ConvexReLU):
-        internal_model = AL_MLP(
+        if model.skip_connection:
+            model_class = SkipALMLP
+        else:
+            model_class = AL_MLP
+
+        internal_model = model_class(
             d,
             D,
             G,
@@ -112,7 +119,12 @@ def build_internal_model(
             c=c,
         )
     elif isinstance(model, ConvexGatedReLU):
-        internal_model = ConvexMLP(d, D, G, "einsum", regularizer=internal_reg, c=c)
+        if model.skip_connection:
+            model_class = SkipMLP
+        else:
+            model_class = ConvexMLP
+
+        internal_model = model_class(d, D, G, "einsum", regularizer=internal_reg, c=c)
     else:
         raise ValueError(f"Model object {model} not supported.")
 
@@ -147,6 +159,19 @@ def extract_gates_bias(
         return (G, None)
 
 
+def extract_skip_connection(
+    internal_model: InternalModel, skip_connection: bool = False
+) -> Tuple[lab.Tensor, List[np.ndarray]]:
+
+    weights = internal_model.weights
+    skip_weights = []
+    if skip_connection:
+        weights, sw = internal_model.get_weights()
+        skip_weights = [lab.to_np(sw)]
+
+    return weights, skip_weights
+
+
 def update_public_model(model: Model, internal_model: InternalModel) -> Model:
     """Update public-facing model object to match state of internal model.
 
@@ -162,13 +187,31 @@ def update_public_model(model: Model, internal_model: InternalModel) -> Model:
 
     if isinstance(model, ConvexGatedReLU):
         assert isinstance(internal_model, ConvexMLP)
-        model.set_parameters(extract_bias(internal_model.weights, model.bias))
-        model.G, model.G_bias = extract_gates_bias(internal_model.U, model.bias)
+
+        weights, skip_weights = extract_skip_connection(
+            internal_model,
+            model.skip_connection,
+        )
+
+        model.set_parameters(
+            extract_bias(weights, model.bias) + skip_weights,
+        )
+        model.G, model.G_bias = extract_gates_bias(
+            internal_model.U,
+            model.bias,
+        )
     elif isinstance(model, ConvexReLU):
         assert isinstance(internal_model, AL_MLP)
+
+        weights, skip_weights = extract_skip_connection(
+            internal_model,
+            model.skip_connection,
+        )
+
         model.set_parameters(
-            extract_bias(internal_model.weights[0], model.bias)
-            + extract_bias(internal_model.weights[1], model.bias)
+            extract_bias(weights[0], model.bias)
+            + extract_bias(weights[1], model.bias)
+            + skip_weights
         )
 
         model.G, model.G_bias = extract_gates_bias(internal_model.U, model.bias)
@@ -178,9 +221,9 @@ def update_public_model(model: Model, internal_model: InternalModel) -> Model:
     return model
 
 
-def build_public_model(
+def get_nc_formulation(
+    model: Model,
     internal_model: InternalModel,
-    bias: bool = False,
 ) -> Model:
     """Construct a public-facing model from an internal model representation.
 
@@ -191,24 +234,49 @@ def build_public_model(
     Returns:
         A public-facing model with identical state.
     """
-    model: Model
-    if isinstance(internal_model, GatedReLUMLP):
+    bias = model.bias
+
+    nc_model: Model
+
+    if isinstance(model, ConvexGatedReLU):
+
+        weights, skip_weights = extract_skip_connection(
+            internal_model,
+            model.skip_connection,
+        )
+
+        w1, w2, G = grelu_solution_mapping(
+            weights,
+            internal_model.G,
+            remove_sparse=True,
+        )
+
         G, G_bias = extract_gates_bias(internal_model.U, bias)
-        model = NonConvexGatedReLU(G, internal_model.c, bias=bias, G_bias=G_bias)
-        w1, w2 = internal_model._split_weights(internal_model.weights)
-        parameters = extract_bias(w1, bias) + extract_bias(w2, False)
-        model.set_parameters(parameters)
+        nc_model = NonConvexGatedReLU(G, internal_model.c, bias=bias, G_bias=G_bias)
 
-    elif isinstance(internal_model, ReLUMLP):
-        d = internal_model.d
-        if bias:
-            d = d - 1
+        parameters = extract_bias(w1, bias) + extract_bias(w2, False)
+        nc_model.set_parameters(parameters + skip_weights)
+
+    elif isinstance(model, ConvexReLU):
+        d = model.d
+
+        weights, skip_weights = extract_skip_connection(
+            internal_model,
+            model.skip_connection,
+        )
+
+        w1, w2, G = relu_solution_mapping(
+            weights,
+            internal_model.G,
+            remove_sparse=True,
+        )
+
         model = NonConvexReLU(d, internal_model.p, internal_model.c, bias=bias)
-        w1, w2 = internal_model._split_weights(internal_model.weights)
         parameters = extract_bias(w1, bias) + extract_bias(w2, False)
 
-        model.set_parameters(parameters)
-    elif isinstance(internal_model, LinearRegression):
+        model.set_parameters(parameters + skip_weights)
+
+    elif isinstance(model, LinearModel):
         model = LinearModel(internal_model.d, internal_model.c, bias=bias)
         model.parameters = extract_bias(internal_model.weights, bias)
     else:
