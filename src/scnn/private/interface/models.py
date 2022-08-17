@@ -277,15 +277,15 @@ def get_nc_formulation(
             remove_sparse=True,
         )
 
-        model = NonConvexReLU(d, internal_model.p, internal_model.c, bias=bias)
+        nc_model = NonConvexReLU(d, internal_model.p, internal_model.c, bias=bias)
         parameters = extract_bias(w1, bias) + extract_bias(w2, False)
 
-        model.set_parameters(parameters + skip_weights)
+        nc_model.set_parameters(parameters + skip_weights)
 
     elif isinstance(model, LinearModel):
-        model = LinearModel(internal_model.d, internal_model.c, bias=bias)
-        model.parameters = extract_bias(internal_model.weights, bias)
+        nc_model = LinearModel(internal_model.d, internal_model.c, bias=bias)
+        nc_model.parameters = extract_bias(internal_model.weights, bias)
     else:
         raise ValueError(f"Model {internal_model} not supported.")
 
-    return model
+    return nc_model
