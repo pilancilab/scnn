@@ -314,6 +314,11 @@ def compute_metric(
         if isinstance(model, ConvexMLP):
             nc_model = get_nc_formulation(model)
 
+            # strip off bias column
+            data = X[:, 0:-1], y
+
+            # remove bias columns
+
         compute_metric(
             metric_name.split("nc_")[1],
             metric_dict,
