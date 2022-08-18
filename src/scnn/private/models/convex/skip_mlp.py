@@ -50,7 +50,7 @@ class SkipMLP(ConvexMLP):
     def _split_weights(self, w: lab.Tensor) -> Tuple[lab.Tensor, lab.Tensor]:
 
         # separate out positive and negative skip weights.
-        return w[:, : self.p], w[:, self.p :]
+        return w[:, : self.p], w[:, self.p]
 
     def _join_weights(self, network_w: lab.Tensor, skip_w: lab.Tensor) -> lab.Tensor:
 

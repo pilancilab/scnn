@@ -112,6 +112,10 @@ class GatedModel(Model):
             self.G_bias = np.zeros(self.p)
 
         self.skip_connection = skip_connection
+        self.skip_model: Optional[LinearModel] = None
+
+        if self.skip_connection:
+            self.skip_model = LinearModel(self.d, self.c, self.bias)
 
     def compute_activations(self, X: np.ndarray) -> np.ndarray:
         """Compute activations for models with fixed gate vectors.
@@ -126,6 +130,15 @@ class GatedModel(Model):
         D[D > 0] = 1
 
         return D
+
+    def get_parameters(self) -> List[np.ndarray]:
+        """Get the model parameters."""
+        params = self.parameters
+
+        if self.skip_model is not None:
+            params = params + self.skip_model.get_parameters()
+
+        return params
 
 
 class LinearModel(Model):
@@ -156,7 +169,7 @@ class LinearModel(Model):
         self.bias = bias
 
         if self.bias:
-            self.parameters = [np.zeros((c, d)), np.zeros((1))]
+            self.parameters = [np.zeros((c, d)), np.zeros((c))]
         else:
             self.parameters = [np.zeros((c, d))]
 
@@ -175,7 +188,7 @@ class LinearModel(Model):
         assert parameters[0].shape == (self.c, self.d)
 
         if self.bias:
-            assert parameters[1].shape == (1)
+            assert parameters[1].shape == (self.c,)
 
         self.parameters = parameters
 
@@ -254,13 +267,6 @@ class ConvexGatedReLU(GatedModel):
         else:
             self.parameters = [np.zeros((c, self.p, self.d))]
 
-        if self.skip_connection:
-            self.parameters = self.parameters + [np.zeros((c, self.d))]
-
-    def get_parameters(self) -> List[np.ndarray]:
-        """Get the model parameters."""
-        return self.parameters
-
     def set_parameters(self, parameters: List[np.ndarray]):
         """Set the model parameters.
 
@@ -274,10 +280,11 @@ class ConvexGatedReLU(GatedModel):
         if self.bias:
             assert parameters[1].shape == (self.c, self.p)
 
-        if self.skip_connection:
-            assert parameters[-1].shape == (self.c, self.d)
+        self.parameters = parameters[0:2]
 
-        self.parameters = parameters
+        print(parameters)
+        if self.skip_model:
+            self.skip_model.set_parameters(parameters[2:])
 
     def __call__(self, X: np.ndarray, **kwargs) -> np.ndarray:
         """Compute the model predictions for a given dataset.
@@ -306,7 +313,7 @@ class ConvexGatedReLU(GatedModel):
             preds = np.einsum("ij, lkj, ik->il", X, self.parameters[0], D)
 
         if self.skip_connection:
-            preds = preds + X @ self.parameters[-1].T
+            preds = preds + self.skip_model(X)
 
         return preds
 
@@ -365,17 +372,6 @@ class NonConvexGatedReLU(GatedModel):
                 np.zeros((self.c, self.p)),
             ]
 
-        if self.skip_connection:
-            self.parameters = self.parameters + [np.zeros((self.c, self.d))]
-
-    def get_parameters(self) -> List[np.ndarray]:
-        """Get the model parameters.
-
-        Returns: A list of model parameters.
-        """
-
-        return self.parameters
-
     def set_parameters(self, parameters: List[np.ndarray]):
         """Set the model parameters.
 
@@ -389,13 +385,16 @@ class NonConvexGatedReLU(GatedModel):
         if self.bias:
             assert parameters[1].shape == (self.p,)
             assert parameters[2].shape == (self.c, self.p)
+            self.parameters = parameters[0:3]
+
+            if self.skip_connection:
+                self.skip_model.set_parameters(parameters[3:])
         else:
             assert parameters[1].shape == (self.c, self.p)
+            self.parameters = parameters[0:2]
 
-        if self.skip_connection:
-            assert parameters[-1].shape == (self.c, self.d)
-
-        self.parameters = parameters
+            if self.skip_connection:
+                self.skip_model.set_parameters(parameters[2:])
 
     def __call__(self, X: np.ndarray, **kwargs) -> np.ndarray:
         """Compute the model predictions for a given dataset.
@@ -418,7 +417,7 @@ class NonConvexGatedReLU(GatedModel):
         preds = np.multiply(D, Z) @ self.parameters[idx].T
 
         if self.skip_connection:
-            preds = preds + X @ self.parameters[-1].T
+            preds = preds + self.skip_model(X)
 
         return preds
 
@@ -483,13 +482,6 @@ class ConvexReLU(GatedModel):
                 np.zeros((c, self.p, self.d)),
             ]
 
-        if self.skip_connection:
-            self.parameters = self.parameters + [np.zeros((c, self.d))]
-
-    def get_parameters(self) -> List[np.ndarray]:
-        """Get the model parameters."""
-        return self.parameters
-
     def set_parameters(self, parameters: List[np.ndarray]):
         """Set the model parameters.
 
@@ -503,14 +495,18 @@ class ConvexReLU(GatedModel):
             assert parameters[2].shape == (self.c, self.p)
             assert parameters[3].shape == (self.c, self.p, self.d)
             assert parameters[4].shape == (self.c, self.p)
+            self.parameters = parameters[0:5]
+
+            if self.skip_connection:
+                self.skip_model.set_parameters(parameters[5:])
+
         else:
             assert parameters[0].shape == (self.c, self.p, self.d)
             assert parameters[1].shape == (self.c, self.p, self.d)
+            self.parameters = parameters[0:3]
 
-        if self.skip_connection:
-            assert parameters[-1].shape == (self.c, self.d)
-
-        self.parameters = parameters
+            if self.skip_connection:
+                self.skip_model.set_parameters(parameters[3:])
 
     def __call__(self, X: np.ndarray, **kwargs) -> np.ndarray:
         """Compute the model predictions for a given dataset.
@@ -537,7 +533,7 @@ class ConvexReLU(GatedModel):
             preds = np.einsum("ij, lkj, ik->il", X, p_diff, D)
 
         if self.skip_connection:
-            preds = preds + X @ self.parameters[-1].T
+            preds = preds + self.skip_model(X)
 
         return preds
 
@@ -597,16 +593,20 @@ class NonConvexReLU(Model):
                 np.zeros((self.c, self.p)),  # second layer weights
             ]
 
+        self.skip_connection = skip_connection
+        self.skip_model: Optional[LinearModel] = None
+
         if self.skip_connection:
-            self.parameters = self.parameters + [np.zeros((self.c, self.d))]
+            self.skip_model = LinearModel(self.d, self.c, self.bias)
 
     def get_parameters(self) -> List[np.ndarray]:
-        """Get the model parameters.
+        """Get the model parameters."""
+        params = self.parameters
 
-        Returns: list of model parameters.
-        """
+        if self.skip_model is not None:
+            params = params + self.skip_model.get_parameters()
 
-        return self.parameters
+        return params
 
     def set_parameters(self, parameters: List[np.ndarray]):
         """Set the model parameters.
@@ -620,14 +620,19 @@ class NonConvexReLU(Model):
             assert parameters[0].shape == (self.p, self.d)
             assert parameters[1].shape == (self.p,)
             assert parameters[2].shape == (self.c, self.p)
+
+            self.parameters = parameters[0:3]
+
+            if self.skip_connection:
+                self.skip_model.set_parameters(parameters[3:])
         else:
             assert parameters[0].shape == (self.p, self.d)
             assert parameters[1].shape == (self.c, self.p)
 
-        if self.skip_connection:
-            assert parameters[-1].shape == (self.c, self.d)
+            self.parameters = parameters[0:2]
 
-        self.parameters = parameters
+            if self.skip_connection:
+                self.skip_model.set_parameters(parameters[2:])
 
     def __call__(self, X: np.ndarray, **kwargs) -> np.ndarray:
         """Compute the model predictions for a given dataset.
@@ -640,12 +645,14 @@ class NonConvexReLU(Model):
         """
         Z = X @ self.parameters[0].T
 
+        idx = 1
         if self.bias:
+            idx = 2
             Z += self.parameters[1]
 
-        preds = np.max(Z, 0) @ self.parameters[-1].T
+        preds = np.maximum(Z, 0) @ self.parameters[idx].T
 
         if self.skip_connection:
-            preds = preds + X @ self.parameters[-1].T
+            preds = preds + self.skip_model(X)
 
         return preds

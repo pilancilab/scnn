@@ -170,7 +170,7 @@ def extract_skip_connection(
     skip_weights = []
     if skip_connection:
         weights, sw = internal_model.get_weights()
-        skip_weights = [lab.to_np(sw)]
+        skip_weights = extract_bias(sw, bias=internal_model._bias)
 
     return weights, skip_weights
 
@@ -255,12 +255,18 @@ def get_nc_formulation(
         )
 
         G, G_bias = extract_gates_bias(G, bias)
-        nc_model = NonConvexGatedReLU(G, internal_model.c, bias=bias, G_bias=G_bias)
+        nc_model = NonConvexGatedReLU(
+            G,
+            internal_model.c,
+            bias=bias,
+            G_bias=G_bias,
+            skip_connection=skip_connection,
+        )
 
         parameters = extract_bias(w1, bias) + extract_bias(w2, False)
         nc_model.set_parameters(parameters + skip_weights)
 
-    elif isinstance(internal_model, ConvexReLU):
+    elif isinstance(internal_model, AL_MLP):
         d = internal_model.d
 
         if bias:
@@ -276,10 +282,10 @@ def get_nc_formulation(
             internal_model.U,
             remove_sparse=True,
         )
-
-        nc_model = NonConvexReLU(d, internal_model.p, internal_model.c, bias=bias)
+        nc_model = NonConvexReLU(
+            d, w1.shape[0], internal_model.c, bias=bias, skip_connection=skip_connection
+        )
         parameters = extract_bias(w1, bias) + extract_bias(w2, False)
-
         nc_model.set_parameters(parameters + skip_weights)
 
     elif isinstance(internal_model, LinearRegression):

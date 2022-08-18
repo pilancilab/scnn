@@ -315,7 +315,8 @@ def compute_metric(
             nc_model = get_nc_formulation(model)
 
             # strip off bias column
-            data = X[:, 0:-1], y
+            if nc_model.bias:
+                data = X[:, 0:-1], y
 
             # remove bias columns
 
