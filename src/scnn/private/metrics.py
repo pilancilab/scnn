@@ -319,6 +319,7 @@ def compute_metric(
                 data = X[:, 0:-1], y
 
             # remove bias columns
+            nc_model._to_lab_tensor()
 
         compute_metric(
             metric_name.split("nc_")[1],

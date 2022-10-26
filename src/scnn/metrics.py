@@ -1,5 +1,6 @@
 """Metrics that can be recorded while training models.
 """
+from typing import Dict
 
 import numpy as np
 
@@ -149,3 +150,46 @@ class Metrics(object):
         """Returns `True` if any test-set metric is enabled, `False`
         otherwise."""
         return self.test_metrics
+
+    def to_dict(self) -> Dict[str, np.ndarray]:
+        """Convert metrics object into a dictionary."""
+
+        metrics = {}
+        if self.metrics_to_collect["objective"]:
+            metrics["objective"] = self.objective
+        if self.metrics_to_collect["grad_norm"]:
+            metrics["grad_norm"] = self.grad_norm
+        if self.metrics_to_collect["time"]:
+            metrics["time"] = self.time
+        if self.metrics_to_collect["model_loss"]:
+            metrics["model_loss"] = self.model_loss
+        if self.metrics_to_collect["constraint_gaps"]:
+            metrics["constraint_gaps"] = self.constraint_gaps
+        if self.metrics_to_collect["lagrangian_grad"]:
+            metrics["lagrangian_grad"] = self.lagrangian_grad
+        if self.metrics_to_collect["train_accuracy"]:
+            metrics["train_accuracy"] = self.train_accuracy
+        if self.metrics_to_collect["train_mse"]:
+            metrics["train_mse"] = self.train_mse
+        if self.metrics_to_collect["test_accuracy"]:
+            metrics["test_accuracy"] = self.test_accuracy
+        if self.metrics_to_collect["test_mse"]:
+            metrics["test_mse"] = self.test_mse
+        if self.metrics_to_collect["total_neurons"]:
+            metrics["total_neurons"] = self.total_neurons
+        if self.metrics_to_collect["neuron_sparsity"]:
+            metrics["neuron_sparsity"] = self.neuron_sparsity
+        if self.metrics_to_collect["active_neurons"]:
+            metrics["active_neurons"] = self.active_neurons
+        if self.metrics_to_collect["total_features"]:
+            metrics["total_features"] = self.total_features
+        if self.metrics_to_collect["feature_sparsity"]:
+            metrics["feature_sparsity"] = self.feature_sparsity
+        if self.metrics_to_collect["active_features"]:
+            metrics["active_features"] = self.active_features
+        if self.metrics_to_collect["active_weights"]:
+            metrics["active_weights"] = self.active_weights
+        if self.metrics_to_collect["weight_sparsity"]:
+            metrics["weight_sparsity"] = self.weight_sparsity
+
+        return metrics

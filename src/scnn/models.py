@@ -45,6 +45,8 @@ from typing import List, Optional
 
 import numpy as np
 
+import lab
+
 
 class Model:
     """Base class for convex and non-convex models.
@@ -62,6 +64,19 @@ class Model:
     c: int
     bias: bool
     parameters: List[np.ndarray]
+
+    def get_parameters(self) -> List[np.ndarray]:
+        raise NotImplementedError()
+
+    def set_parameters(self, parameters: List[np.ndarray]):
+        raise NotImplementedError()
+
+    def _to_lab_tensor(self):
+        """Move model to be lab parameters."""
+        params = []
+        for p in self.get_parameters():
+            params.append(lab.to_tensor(p, dtype=lab.get_dtype()))
+        self.set_parameters(params)
 
 
 class GatedModel(Model):
