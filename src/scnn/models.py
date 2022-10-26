@@ -75,7 +75,7 @@ class Model:
         """Move model to be lab parameters."""
         params = []
         for p in self.get_parameters():
-            params.append(lab.to_tensor(p, dtype=lab.get_dtype()))
+            params.append(lab.tensor(p, dtype=lab.get_dtype()))
         self.set_parameters(params)
 
 
