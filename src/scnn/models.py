@@ -76,6 +76,7 @@ class Model:
         params = []
         for p in self.get_parameters():
             params.append(lab.tensor(p, dtype=lab.get_dtype()))
+
         self.set_parameters(params)
 
 
@@ -154,6 +155,15 @@ class GatedModel(Model):
             params = params + self.skip_model.get_parameters()
 
         return params
+
+    def _to_lab_tensor(self):
+        """Move model to be lab parameters."""
+        super()._to_lab_tensor()
+
+        self.G = lab.tensor(self.G, dtype=lab.get_dtype())
+
+        if self.G_bias is not None:
+            self.G_bias = lab.tensor(self.G_bias, dtype=lab.get_dtype)
 
 
 class LinearModel(Model):
@@ -429,7 +439,10 @@ class NonConvexGatedReLU(GatedModel):
             idx = 2
             Z += self.parameters[1]
 
-        preds = np.multiply(D, Z) @ self.parameters[idx].T
+        if isinstance(Z, np.ndarray):
+            preds = np.multiply(D, Z) @ self.parameters[idx].T
+        else:
+            preds = lab.multiply(D, Z) @ self.parameters[idx].T
 
         if self.skip_connection:
             preds = preds + self.skip_model(X)
@@ -665,7 +678,10 @@ class NonConvexReLU(Model):
             idx = 2
             Z += self.parameters[1]
 
-        preds = np.maximum(Z, 0) @ self.parameters[idx].T
+        if isinstance(Z, np.ndarray):
+            preds = np.maximum(Z, 0) @ self.parameters[idx].T
+        else:
+            preds = lab.smax(Z, 0) @ self.parameters[idx].T
 
         if self.skip_connection:
             preds = preds + self.skip_model(X)
