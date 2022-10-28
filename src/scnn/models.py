@@ -163,7 +163,7 @@ class GatedModel(Model):
         self.G = lab.tensor(self.G, dtype=lab.get_dtype())
 
         if self.G_bias is not None:
-            self.G_bias = lab.tensor(self.G_bias, dtype=lab.get_dtype)
+            self.G_bias = lab.tensor(self.G_bias, dtype=lab.get_dtype())
 
 
 class LinearModel(Model):

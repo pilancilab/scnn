@@ -18,6 +18,8 @@ from scnn.private.models import (
     FeatureGroupL1Regularizer,
     ConvexMLP,
     AL_MLP,
+    SkipMLP,
+    SkipALMLP,
 )
 
 from .cvxpy_solver import CVXPYSolver
@@ -156,6 +158,12 @@ class CVXPYGatedReLUSolver(ConvexReformulationSolver):
         # create optimization variables
         W = cp.Variable((self.p * self.c, self.d))
 
+        beta = None
+        if isinstance(model, (SkipMLP)):
+            beta = cp.Variable((self.c, self.d))
+            # use skip connection
+            y_np = y_np - beta @ X_np.T
+
         # get squared-error
         loss = self.get_squared_error(W, X_np, y_np, D_np)
         loss += self.get_regularization(W, model.regularizer)
@@ -170,9 +178,16 @@ class CVXPYGatedReLUSolver(ConvexReformulationSolver):
         problem.solve(solver=self.solver, verbose=verbose, **self.solver_kwargs)
 
         # extract solution
-        model.weights = lab.tensor(W.value, dtype=lab.get_dtype()).reshape(
+        weights = lab.tensor(W.value, dtype=lab.get_dtype()).reshape(
             self.c, self.p, self.d
         )
+        if beta is not None:
+            skip_weights = lab.tensor(beta.value, dtype=lab.get_dtype()).reshape(
+                self.c, 1, self.d
+            )
+            weights = model._join_weights(weights, skip_weights)
+
+        model.set_weights(weights)
 
         # extract solver information
         exit_status = {
@@ -208,6 +223,12 @@ class CVXPYReLUSolver(ConvexReformulationSolver):
         V = cp.Variable((self.p * self.c, self.d))
         W = U - V
 
+        beta = None
+        if isinstance(model, (SkipALMLP)):
+            beta = cp.Variable((self.c, self.d))
+            # use skip connection
+            y_np = y_np - beta @ X_np.T
+
         # get squared-error
         loss = self.get_squared_error(W, X_np, y_np, D_np)
         loss += self.get_regularization(U, model.regularizer)
@@ -228,7 +249,7 @@ class CVXPYReLUSolver(ConvexReformulationSolver):
         problem.solve(solver=self.solver, verbose=verbose, **self.solver_kwargs)
 
         # extract solution
-        model.weights = lab.stack(
+        weights = lab.stack(
             [
                 lab.tensor(U.value, dtype=lab.get_dtype()).reshape(
                     self.c, self.p, self.d
@@ -238,6 +259,17 @@ class CVXPYReLUSolver(ConvexReformulationSolver):
                 ),
             ]
         )
+        if beta is not None:
+            skip_weights = lab.tensor(beta.value, dtype=lab.get_dtype()).reshape(
+                self.c, 1, self.d
+            )
+            skip_weights = np.stack([skip_weights, np.zeros_like(skip_weights)])
+            weights = model._join_weights(
+                weights,
+                skip_weights,
+            )
+
+        model.weights = weights
 
         # extract solver information
         exit_status = {
