@@ -159,14 +159,19 @@ class CVXPYGatedReLUSolver(ConvexReformulationSolver):
         W = cp.Variable((self.p * self.c, self.d))
 
         beta = None
+        beta_reg = 0
         if isinstance(model, (SkipMLP)):
             beta = cp.Variable((self.c, self.d))
             # use skip connection
             y_np = y_np - beta @ X_np.T
 
+            # regularize by 2-norm squared
+            beta_reg = cp.sum_squares(self.beta)
+
         # get squared-error
         loss = self.get_squared_error(W, X_np, y_np, D_np)
         loss += self.get_regularization(W, model.regularizer)
+        loss += model.regularizer.lam * beta_reg
 
         objective = cp.Minimize(loss)
 
@@ -224,15 +229,20 @@ class CVXPYReLUSolver(ConvexReformulationSolver):
         W = U - V
 
         beta = None
+        beta_reg = 0
         if isinstance(model, (SkipALMLP)):
             beta = cp.Variable((self.c, self.d))
             # use skip connection
             y_np = y_np - beta @ X_np.T
 
+            # regularize by 2-norm squared
+            beta_reg = cp.sum_squares(self.beta)
+
         # get squared-error
         loss = self.get_squared_error(W, X_np, y_np, D_np)
         loss += self.get_regularization(U, model.regularizer)
         loss += self.get_regularization(V, model.regularizer)
+        loss += model.regularizer.lam * beta_reg
 
         objective = cp.Minimize(loss)
 
