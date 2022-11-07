@@ -166,7 +166,7 @@ class CVXPYGatedReLUSolver(ConvexReformulationSolver):
             y_np = y_np - beta @ X_np.T
 
             # regularize by 2-norm squared
-            beta_reg = cp.sum_squares(self.beta)
+            beta_reg = cp.sum_squares(beta)
 
         # get squared-error
         loss = self.get_squared_error(W, X_np, y_np, D_np)
@@ -236,7 +236,7 @@ class CVXPYReLUSolver(ConvexReformulationSolver):
             y_np = y_np - beta @ X_np.T
 
             # regularize by 2-norm squared
-            beta_reg = cp.sum_squares(self.beta)
+            beta_reg = cp.sum_squares(beta)
 
         # get squared-error
         loss = self.get_squared_error(W, X_np, y_np, D_np)

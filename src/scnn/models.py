@@ -520,21 +520,21 @@ class ConvexReLU(GatedModel):
         """
         if self.bias:
             assert parameters[0].shape == (self.c, self.p, self.d)
-            assert parameters[2].shape == (self.c, self.p)
-            assert parameters[3].shape == (self.c, self.p, self.d)
-            assert parameters[4].shape == (self.c, self.p)
-            self.parameters = parameters[0:5]
+            assert parameters[1].shape == (self.c, self.p)
+            assert parameters[2].shape == (self.c, self.p, self.d)
+            assert parameters[3].shape == (self.c, self.p)
+            self.parameters = parameters[0:4]
 
             if self.skip_connection:
-                self.skip_model.set_parameters(parameters[5:])
+                self.skip_model.set_parameters(parameters[4:])
 
         else:
             assert parameters[0].shape == (self.c, self.p, self.d)
             assert parameters[1].shape == (self.c, self.p, self.d)
-            self.parameters = parameters[0:3]
+            self.parameters = parameters[0:2]
 
             if self.skip_connection:
-                self.skip_model.set_parameters(parameters[3:])
+                self.skip_model.set_parameters(parameters[2:])
 
     def __call__(self, X: np.ndarray, **kwargs) -> np.ndarray:
         """Compute the model predictions for a given dataset.
@@ -546,8 +546,6 @@ class ConvexReLU(GatedModel):
             - g(X): the model predictions for X.
         """
         D = super().compute_activations(X)
-
-        p_diff = self.parameters[0] - self.parameters[1]
 
         if self.bias:
             bias_diff = self.parameters[1] - self.parameters[3]

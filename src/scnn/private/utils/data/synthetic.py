@@ -19,7 +19,7 @@ import math
 import numpy as np
 from scipy.stats import ortho_group  # type: ignore
 
-Transform = Literal["cosine", "polynomial"]
+Transform = Literal["cosine", "cubic", "product"]
 
 # local types
 
@@ -170,7 +170,7 @@ def gen_sparse_regression_problem(
             Defaults to 1.
         nnz: number of non-zeros features in the true model.
         transform: a non-linear transformation. This must be `None`,
-            `'cosine'`, `'polynomial'`, `'product'`, or a callable function that applies a
+            `'cosine'`, `'cubic'`, `'product'`, or a callable function that applies a
             custom transformation.
         unitize_targets: unitize the variance of the targets before adding
             noise.
@@ -206,7 +206,10 @@ def gen_sparse_regression_problem(
         y = np.cos(y)
     elif transform == "cubic":
         # simple cubic
-        y = y + (y**2) / 2 + (y**3) / 6
+        assert nnz >= 2
+        y = X[:, non_zero_indices[0]] ** 3 + X[:, non_zero_indices[1]] ** 2
+        y += np.sum(X[:, non_zero_indices[2:]], axis=-1)
+
     elif transform == "product":
         y = np.sign(np.prod(X[:, non_zero_indices], axis=1))
     else:

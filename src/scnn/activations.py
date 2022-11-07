@@ -243,6 +243,8 @@ def compute_activation_patterns(
     if filter_duplicates:
         D, indices = np.unique(XG, axis=1, return_index=True)
         G = G[:, indices]
+    else:
+        D = XG
 
     # filter out the zero column.
     if filter_zero:
@@ -256,6 +258,7 @@ def compute_activation_patterns(
 def generate_index_lists(
     d: int,
     order: int,
+    include_smaller: bool = False,
 ) -> List[List[int]]:
     """Generate lists of all groups of indices of order up to and including
     `order`.
@@ -274,7 +277,12 @@ def generate_index_lists(
     index_lists: List[List[int]] = []
     all_indices = list(range(d))
 
-    for i in range(1, order + 1):
+    if include_smaller:
+        start = 1
+    else:
+        start = order
+
+    for i in range(start, order + 1):
         d_choose_i = [list(comb) for comb in combinations(all_indices, i)]
         index_lists = index_lists + d_choose_i
 
