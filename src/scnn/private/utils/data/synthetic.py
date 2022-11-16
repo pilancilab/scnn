@@ -151,7 +151,6 @@ def gen_sparse_regression_problem(
     kappa: float = 1,
     nnz: Optional[int] = None,
     transform: Optional[Union[Transform, Callable]] = None,
-    unitize_targets: Optional[bool] = False,
 ) -> Tuple[Dataset, Dataset, np.ndarray]:
     """Sample data from a feature-sparse planted model.
 
@@ -172,8 +171,6 @@ def gen_sparse_regression_problem(
         transform: a non-linear transformation. This must be `None`,
             `'cosine'`, `'cubic'`, `'product'`, or a callable function that applies a
             custom transformation.
-        unitize_targets: unitize the variance of the targets before adding
-            noise.
 
     Returns:
         A training set `(X_train, y_train)`, test set `(X_test, y_test)`, and
@@ -221,12 +218,11 @@ def gen_sparse_regression_problem(
                         predefined transform, a callable function, or `None`."
             )
 
-    if unitize_targets:
-        y = y / np.var(y)
-
     # add noise
     if sigma != 0:
-        y = y + rng.normal(0, scale=sigma, size=y.shape)
+        # set so sigma is exactly equal to SNR.
+        scale = np.sqrt(sigma / np.var(y))
+        y = y + rng.normal(0, scale=scale, size=y.shape)
 
     train_set = (X[:n], y[:n])
     test_set = (X[n:], y[n:])
@@ -243,7 +239,6 @@ def gen_sparse_nn_problem(
     sigma: float = 0,
     kappa: float = 1.0,
     nnz: Optional[int] = None,
-    unitize_targets: Optional[bool] = False,
 ) -> Tuple[Dataset, Dataset]:
     """Create a binary classification dataset with a random Gaussian design
     matrix and targets given by a two-layer neural network with random Gaussian
@@ -264,8 +259,6 @@ def gen_sparse_nn_problem(
         kappa: (optional) the (approximate) condition number of the train/test
             design matrices.
         nnz: number of non-zeros in the true model.
-        unitize_targets: unitize the variance of the targets before adding
-            noise.
 
     Returns:
         A training set `(X_train, y_train)` and test set `(X_test, y_test)`.
@@ -301,11 +294,10 @@ def gen_sparse_nn_problem(
     X_np = np.array(X)
     y_np = np.array(y).reshape(-1, 1)
 
-    if unitize_targets:
-        y_np = y_np / np.var(y_np)
-
     if sigma != 0:
-        y_np = y_np + rng.normal(0, scale=sigma, size=y_np.shape)
+        # set so sigma is exactly equal to SNR.
+        scale = np.sqrt(sigma / np.var(y_np))
+        y_np = y_np + rng.normal(0, scale=scale, size=y_np.shape)
 
     # shuffle dataset.
     indices = np.arange(n + n_test)
