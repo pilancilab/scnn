@@ -190,7 +190,10 @@ def gen_sparse_regression_problem(
         w_opt = w_opt * mask
 
     # sample covariance matrix.
-    Sigma = sample_covariance_matrix(rng, d, kappa)
+    if kappa == 1:
+        Sigma = np.eye(d)
+    else:
+        Sigma = sample_covariance_matrix(rng, d, kappa)
 
     X = rng.multivariate_normal(np.zeros(d), cov=Sigma, size=n + n_test)
     y = np.dot(X, w_opt)
