@@ -10,6 +10,7 @@ import lab
 from scnn.regularizers import (
     Regularizer,
     NeuronGL1,
+    SkipNeuronGL1,
     FeatureGL1,
     L2,
     L1,
@@ -30,6 +31,7 @@ from scnn.private.models import (
     AL_MLP,
     SkipALMLP,
     GroupL1Regularizer,
+    SkipGroupL1Regularizer,
     FeatureGroupL1Regularizer,
     L2Regularizer,
     L1Regularizer,
@@ -62,6 +64,8 @@ def build_internal_regularizer(
 
     if isinstance(regularizer, NeuronGL1):
         reg = GroupL1Regularizer(lam)
+    elif isinstance(regularizer, SkipNeuronGL1):
+        reg = SkipGroupL1Regularizer(lam, regularizer.skip_lam)
     elif isinstance(regularizer, FeatureGL1):
         reg = FeatureGroupL1Regularizer(lam)
     elif isinstance(regularizer, L2):

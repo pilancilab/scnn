@@ -100,3 +100,28 @@ class CardinalityConstraint(Regularizer):
 
     def __str__(self):
         return f"cardinality_{self.lam}_{self.M}_{self.b}"
+
+
+class SkipNeuronGL1(Regularizer):
+    """A neuron-wise group-L1 regularizer with L2 penalty for skip weights.
+
+    This regularizer produces neuron sparsity in the final model,
+    meaning that some neurons will be completely inactive after training.
+    The regularizer has the form,
+
+    .. math:: R(U) = \\lambda \\sum_{i = 1}^p \\|U_i\\|_2 + \\lambda_{\\text{skip}}\\|U_{\\text{skip}}\\|_2,
+
+    where :math:`\\lambda` is the regularization strength for the network weights
+    and :math:`\\lambda_{\\text{skip}}` is the strength for the skip weights.
+
+    Attributes:
+        lam: the regularization strength.
+        skip_lam: the regularization strength for the skip weights.
+    """
+
+    def __init__(self, lam: float, skip_lam: float):
+        self.lam = lam
+        self.skip_lam = skip_lam
+
+    def __str__(self):
+        return f"skip_neuron_gl1_{self.lam}_{self.skip_lam}"

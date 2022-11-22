@@ -14,6 +14,7 @@ from scnn.private.models import (
     Model,
     Regularizer,
     L2Regularizer,
+    SkipGroupL1Regularizer,
     GroupL1Regularizer,
     FeatureGroupL1Regularizer,
     ConvexMLP,
@@ -127,7 +128,7 @@ class ConvexReformulationSolver(CVXPYSolver):
 
         if isinstance(regularizer, L2Regularizer):
             return (lam / 2) * cp.sum_squares(W)
-        elif isinstance(regularizer, GroupL1Regularizer):
+        elif isinstance(regularizer, (GroupL1Regularizer, SkipGroupL1Regularizer)):
             return lam * cp.mixed_norm(W, p=2, q=1)
         elif isinstance(regularizer, FeatureGroupL1Regularizer):
             return lam * cp.mixed_norm(W.T, p=2, q=1)
@@ -166,12 +167,16 @@ class CVXPYGatedReLUSolver(ConvexReformulationSolver):
             y_np = y_np - beta @ X_np.T
 
             # regularize by 2-norm squared
-            beta_reg = cp.sum_squares(beta)
+            try:
+                skip_lam = model.regularizer.skip_lam
+            except:
+                skip_lam = model.regularizer.lam
+            beta_reg = skip_lam * cp.sum_squares(beta)
 
         # get squared-error
         loss = self.get_squared_error(W, X_np, y_np, D_np)
         loss += self.get_regularization(W, model.regularizer)
-        loss += model.regularizer.lam * beta_reg
+        loss += beta_reg
 
         objective = cp.Minimize(loss)
 
@@ -236,13 +241,17 @@ class CVXPYReLUSolver(ConvexReformulationSolver):
             y_np = y_np - beta @ X_np.T
 
             # regularize by 2-norm squared
-            beta_reg = cp.sum_squares(beta)
+            try:
+                skip_lam = model.regularizer.skip_lam
+            except:
+                skip_lam = model.regularizer.lam
+            beta_reg = skip_lam * cp.sum_squares(beta)
 
         # get squared-error
         loss = self.get_squared_error(W, X_np, y_np, D_np)
         loss += self.get_regularization(U, model.regularizer)
         loss += self.get_regularization(V, model.regularizer)
-        loss += model.regularizer.lam * beta_reg
+        loss += beta_reg
 
         objective = cp.Minimize(loss)
 

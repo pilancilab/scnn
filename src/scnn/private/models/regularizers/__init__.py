@@ -3,6 +3,7 @@
 from .regularizer import Regularizer
 from .constraint import Constraint
 from .group_l1 import GroupL1Regularizer
+from .skip_group_l1 import SkipGroupL1Regularizer
 from .group_l1_orthant import GroupL1Orthant
 from .feature_group_l1 import FeatureGroupL1Regularizer
 from .l2 import L2Regularizer
@@ -16,6 +17,7 @@ __all__ = [
     "Regularizer",
     "Constraint",
     "GroupL1Regularizer",
+    "SkipGroupL1Regularizer",
     "GroupL1Orthant",
     "FeatureGroupL1Regularizer",
     "L2Regularizer",

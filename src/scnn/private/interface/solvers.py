@@ -22,7 +22,7 @@ from scnn.private.methods import (
 from scnn.private.methods import Optimizer as InteralOpt
 from scnn.private.methods import ProximalCleanup, QuadraticBound
 from scnn.private.methods import ApproximateConeDecomposition as ACD
-from scnn.regularizers import L1, L2, FeatureGL1, NeuronGL1, Regularizer
+from scnn.regularizers import L1, L2, FeatureGL1, NeuronGL1, SkipNeuronGL1, Regularizer
 from scnn.solvers import (
     AL,
     RFISTA,
@@ -60,6 +60,8 @@ def build_prox_operator(
         op = prox.L1(lam)
     elif isinstance(regularizer, NeuronGL1):
         op = prox.GroupL1(lam)
+    elif isinstance(regularizer, SkipNeuronGL1):
+        op = prox.SkipGroupL1(lam, regularizer.skip_lam)
     elif isinstance(regularizer, FeatureGL1):
         op = prox.FeatureGroupL1(lam)
     elif regularizer is None:
