@@ -164,13 +164,14 @@ class CVXPYGatedReLUSolver(ConvexReformulationSolver):
         if isinstance(model, (SkipMLP)):
             beta = cp.Variable((self.c, self.d))
             # use skip connection
-            y_np = y_np - beta @ X_np.T
+            y_np = y_np - X_np @ beta.T
 
             # regularize by 2-norm squared
             try:
                 skip_lam = model.regularizer.skip_lam
             except:
                 skip_lam = model.regularizer.lam
+
             beta_reg = skip_lam * cp.sum_squares(beta)
 
         # get squared-error
@@ -238,13 +239,14 @@ class CVXPYReLUSolver(ConvexReformulationSolver):
         if isinstance(model, (SkipALMLP)):
             beta = cp.Variable((self.c, self.d))
             # use skip connection
-            y_np = y_np - beta @ X_np.T
+            y_np = y_np - X_np @ beta.T
 
             # regularize by 2-norm squared
             try:
                 skip_lam = model.regularizer.skip_lam
             except:
                 skip_lam = model.regularizer.lam
+
             beta_reg = skip_lam * cp.sum_squares(beta)
 
         # get squared-error
