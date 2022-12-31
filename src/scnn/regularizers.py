@@ -1,5 +1,7 @@
 """Regularizers for training neural networks by convex reformulation."""
 
+from typing import Optional
+
 
 class Regularizer:
     """Base class for all regularizers."""
@@ -119,7 +121,10 @@ class SkipNeuronGL1(Regularizer):
         skip_lam: the regularization strength for the skip weights.
     """
 
-    def __init__(self, lam: float, skip_lam: float):
+    def __init__(self, lam: float, skip_lam: Optional[float] = None):
+        if skip_lam is None:
+            skip_lam = lam
+
         self.lam = lam
         self.skip_lam = skip_lam
 
