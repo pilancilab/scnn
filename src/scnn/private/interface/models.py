@@ -141,10 +141,12 @@ def extract_gates_bias(
 ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
 
     G = lab.to_np(G)
+    p = G.shape[-1]
+
     if bias:
         return (G[0:-1], G[-1])
     else:
-        return (G, None)
+        return (G, np.zeros(p))
 
 
 def update_public_model(model: Model, internal_model: InternalModel) -> Model:
