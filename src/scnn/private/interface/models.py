@@ -174,6 +174,11 @@ def update_public_model(model: Model, internal_model: InternalModel) -> Model:
         )
 
         model.G, model.G_bias = extract_gates_bias(internal_model.U, model.bias)
+
+        model.dual_parameters = [
+            internal_model.i_multipliers[0],
+            internal_model.i_multipliers[1],
+        ]
     elif isinstance(model, LinearModel):
         model.set_parameters(extract_bias(internal_model.weights, model.bias))
 

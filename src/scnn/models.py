@@ -213,6 +213,8 @@ class ConvexGatedReLU(GatedModel):
         parameters: the parameters of the model stored as a list of tensors.
     """
 
+    dual_parameters: List[np.ndarray]
+
     def __init__(
         self,
         G: np.ndarray,
@@ -577,4 +579,4 @@ class NonConvexReLU(Model):
         if self.bias:
             Z += self.parameters[1]
 
-        return np.max(Z, 0) @ self.parameters[-1].T
+        return np.maximum(Z, 0) @ self.parameters[-1].T

@@ -73,7 +73,7 @@ class ConvexReformulationSolver(CVXPYSolver):
             A list of :math:`p * c` constraints, one for each of the target-activation pair.
         """
         return [
-            cp.multiply(A, X @ W[i * self.p : (i + 1) * self.p].T) >= 0
+            cp.multiply(A, X @ W[i * self.p : (i + 1) * self.p].T).T >= 0
             for i in range(self.c)
         ]
 
@@ -97,16 +97,13 @@ class ConvexReformulationSolver(CVXPYSolver):
 
         loss = 0.0
         for i in range(self.c):
-            loss += (
-                cp.sum_squares(
-                    cp.sum(
-                        cp.multiply(D, X @ W[i * self.p : (i + 1) * self.p].T),
-                        axis=1,
-                    )
-                    - y[:, i]
+            loss += cp.sum_squares(
+                cp.sum(
+                    cp.multiply(D, X @ W[i * self.p : (i + 1) * self.p].T),
+                    axis=1,
                 )
-                / (2 * self.n * self.c)
-            )
+                - y[:, i]
+            ) / (2 * self.n * self.c)
 
         return loss
 
@@ -173,9 +170,7 @@ class CVXPYGatedReLUSolver(ConvexReformulationSolver):
         # infer verbosity of sub-solver.
         verbose = root.level <= INFO
         # solve the optimization problem
-        problem.solve(
-            solver=self.solver, verbose=verbose, **self.solver_kwargs
-        )
+        problem.solve(solver=self.solver, verbose=verbose, **self.solver_kwargs)
 
         # extract solution
         model.weights = lab.tensor(W.value, dtype=lab.get_dtype()).reshape(
@@ -225,17 +220,15 @@ class CVXPYReLUSolver(ConvexReformulationSolver):
 
         # define orthant constraints
         A = 2 * D_np - np.ones_like(D_np)
-        constraints = self.get_cone_constraints(
-            U, X_np, A
-        ) + self.get_cone_constraints(V, X_np, A)
+        U_constraints = self.get_cone_constraints(U, X_np, A)
+        V_constraints = self.get_cone_constraints(V, X_np, A)
+        constraints = U_constraints + V_constraints
 
         problem = cp.Problem(objective, constraints)
 
         verbose = root.level <= INFO
         # solve the optimization problem
-        problem.solve(
-            solver=self.solver, verbose=verbose, **self.solver_kwargs
-        )
+        problem.solve(solver=self.solver, verbose=verbose, **self.solver_kwargs)
 
         # extract solution
         model.weights = lab.stack(
@@ -248,6 +241,17 @@ class CVXPYReLUSolver(ConvexReformulationSolver):
                 ),
             ]
         )
+
+        # extract dual parameters
+
+        U_multipliers = lab.tensor(
+            [con.dual_value for con in U_constraints], dtype=lab.get_dtype()
+        ).reshape(self.c, self.p, self.n)
+        V_multipliers = lab.tensor(
+            [con.dual_value for con in V_constraints], dtype=lab.get_dtype()
+        ).reshape(self.c, self.p, self.n)
+
+        model.i_multipliers = lab.stack([U_multipliers, V_multipliers])
 
         # extract solver information
         exit_status = {
