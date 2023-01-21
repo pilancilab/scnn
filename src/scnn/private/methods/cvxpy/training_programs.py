@@ -1,8 +1,5 @@
 """Solvers for convex reformulations of neural networks based on the `CVXPY
 <https://www.cvxpy.org>`_ DSL.
-
-TODO:
-    - How to handle GL1 penalties for the convex LassoNet models?
 """
 
 from typing import Dict, Any, Tuple, List, Optional
@@ -17,10 +14,13 @@ from scnn.private.models import (
     Model,
     Regularizer,
     L2Regularizer,
+    SkipGroupL1Regularizer,
     GroupL1Regularizer,
     FeatureGroupL1Regularizer,
     ConvexMLP,
     AL_MLP,
+    SkipMLP,
+    SkipALMLP,
 )
 
 from .cvxpy_solver import CVXPYSolver
@@ -128,7 +128,7 @@ class ConvexReformulationSolver(CVXPYSolver):
 
         if isinstance(regularizer, L2Regularizer):
             return (lam / 2) * cp.sum_squares(W)
-        elif isinstance(regularizer, GroupL1Regularizer):
+        elif isinstance(regularizer, (GroupL1Regularizer, SkipGroupL1Regularizer)):
             return lam * cp.mixed_norm(W, p=2, q=1)
         elif isinstance(regularizer, FeatureGroupL1Regularizer):
             return lam * cp.mixed_norm(W.T, p=2, q=1)
@@ -159,9 +159,25 @@ class CVXPYGatedReLUSolver(ConvexReformulationSolver):
         # create optimization variables
         W = cp.Variable((self.p * self.c, self.d))
 
+        beta = None
+        beta_reg = 0
+        if isinstance(model, (SkipMLP)):
+            beta = cp.Variable((self.c, self.d))
+            # use skip connection
+            y_np = y_np - X_np @ beta.T
+
+            # regularize by 2-norm squared
+            try:
+                skip_lam = model.regularizer.skip_lam
+            except:
+                skip_lam = model.regularizer.lam
+
+            beta_reg = skip_lam * cp.sum_squares(beta)
+
         # get squared-error
         loss = self.get_squared_error(W, X_np, y_np, D_np)
         loss += self.get_regularization(W, model.regularizer)
+        loss += beta_reg
 
         objective = cp.Minimize(loss)
 
@@ -173,9 +189,16 @@ class CVXPYGatedReLUSolver(ConvexReformulationSolver):
         problem.solve(solver=self.solver, verbose=verbose, **self.solver_kwargs)
 
         # extract solution
-        model.weights = lab.tensor(W.value, dtype=lab.get_dtype()).reshape(
+        weights = lab.tensor(W.value, dtype=lab.get_dtype()).reshape(
             self.c, self.p, self.d
         )
+        if beta is not None:
+            skip_weights = lab.tensor(beta.value, dtype=lab.get_dtype()).reshape(
+                self.c, 1, self.d
+            )
+            weights = model._join_weights(weights, skip_weights)
+
+        model.set_weights(weights)
 
         # extract solver information
         exit_status = {
@@ -211,10 +234,26 @@ class CVXPYReLUSolver(ConvexReformulationSolver):
         V = cp.Variable((self.p * self.c, self.d))
         W = U - V
 
+        beta = None
+        beta_reg = 0
+        if isinstance(model, (SkipALMLP)):
+            beta = cp.Variable((self.c, self.d))
+            # use skip connection
+            y_np = y_np - X_np @ beta.T
+
+            # regularize by 2-norm squared
+            try:
+                skip_lam = model.regularizer.skip_lam
+            except:
+                skip_lam = model.regularizer.lam
+
+            beta_reg = skip_lam * cp.sum_squares(beta)
+
         # get squared-error
         loss = self.get_squared_error(W, X_np, y_np, D_np)
         loss += self.get_regularization(U, model.regularizer)
         loss += self.get_regularization(V, model.regularizer)
+        loss += beta_reg
 
         objective = cp.Minimize(loss)
 
@@ -231,7 +270,7 @@ class CVXPYReLUSolver(ConvexReformulationSolver):
         problem.solve(solver=self.solver, verbose=verbose, **self.solver_kwargs)
 
         # extract solution
-        model.weights = lab.stack(
+        weights = lab.stack(
             [
                 lab.tensor(U.value, dtype=lab.get_dtype()).reshape(
                     self.c, self.p, self.d
@@ -241,6 +280,17 @@ class CVXPYReLUSolver(ConvexReformulationSolver):
                 ),
             ]
         )
+        if beta is not None:
+            skip_weights = lab.tensor(beta.value, dtype=lab.get_dtype()).reshape(
+                self.c, 1, self.d
+            )
+            skip_weights = np.stack([skip_weights, np.zeros_like(skip_weights)])
+            weights = model._join_weights(
+                weights,
+                skip_weights,
+            )
+
+        model.weights = weights
 
         # extract dual parameters
 

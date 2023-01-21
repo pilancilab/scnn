@@ -14,6 +14,7 @@ from .optimization_procedures import (
 from .core import (
     ls,
     gd_ls,
+    gradient_step,
     proximal_gradient_step,
     proximal_gradient_ls,
     fista_step,

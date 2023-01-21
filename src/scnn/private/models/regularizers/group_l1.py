@@ -71,14 +71,12 @@ class GroupL1Regularizer(Regularizer):
         # requires base_grad to compute minimum-norm subgradient
         assert base_grad is not None
 
-        weight_norms = lab.sqrt(lab.sum(w ** 2, axis=-1, keepdims=True))
-        grad_norms = lab.sqrt(lab.sum(base_grad ** 2, axis=-1, keepdims=True))
+        weight_norms = lab.sqrt(lab.sum(w**2, axis=-1, keepdims=True))
+        grad_norms = lab.sqrt(lab.sum(base_grad**2, axis=-1, keepdims=True))
 
         # TODO: use safe divide
         non_smooth_term = (
-            base_grad
-            * lab.smin(self.lam / grad_norms, 1)
-            * (weight_norms == 0)
+            base_grad * lab.smin(self.lam / grad_norms, 1) * (weight_norms == 0)
         )
         smooth_term = self.lam * lab.safe_divide(w, weight_norms)
 

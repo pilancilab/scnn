@@ -9,13 +9,11 @@ from scnn.private.methods import (
     FISTA,
     AugmentedLagrangian,
     ConstrainedHeuristic,
-    LagrangianGradNorm,
     CVXPYGatedReLUSolver,
     CVXPYReLUSolver,
     DoubleLoopProcedure,
     GradientNorm,
     IterativeOptimizationProcedure,
-    LagrangianGradNorm,
     Lassplore,
     LinearSolver,
     MultiplicativeBacktracker,
@@ -24,7 +22,7 @@ from scnn.private.methods import (
 from scnn.private.methods import Optimizer as InteralOpt
 from scnn.private.methods import ProximalCleanup, QuadraticBound
 from scnn.private.methods import ApproximateConeDecomposition as ACD
-from scnn.regularizers import L1, L2, FeatureGL1, NeuronGL1, Regularizer
+from scnn.regularizers import L1, L2, FeatureGL1, NeuronGL1, SkipNeuronGL1, Regularizer
 from scnn.solvers import (
     AL,
     RFISTA,
@@ -35,8 +33,8 @@ from scnn.solvers import (
 )
 
 from scnn.models import ConvexGatedReLU, ConvexReLU
-from scnn.regularizers import NeuronGL1
 from scnn.private.interface import build_internal_regularizer
+from scnn.regularizers import CardinalityConstraint
 
 
 def build_prox_operator(
@@ -62,14 +60,14 @@ def build_prox_operator(
         op = prox.L1(lam)
     elif isinstance(regularizer, NeuronGL1):
         op = prox.GroupL1(lam)
+    elif isinstance(regularizer, SkipNeuronGL1):
+        op = prox.SkipGroupL1(lam, regularizer.skip_lam)
     elif isinstance(regularizer, FeatureGL1):
         op = prox.FeatureGroupL1(lam)
     elif regularizer is None:
         op = prox.Identity()
     else:
-        raise ValueError(
-            f"Optimizer does not support regularizer {regularizer}."
-        )
+        raise ValueError(f"Optimizer does not support regularizer {regularizer}.")
 
     return op
 
@@ -137,7 +135,6 @@ def build_optimizer(
         outer_term_criterion = ConstrainedHeuristic(
             optimizer.tol, optimizer.constraint_tol
         )
-        # outer_term_criterion = LagrangianGradNorm(optimizer.tol)
 
         sub_opt = build_fista(regularizer)
         opt = AugmentedLagrangian(
@@ -177,10 +174,14 @@ def build_optimizer(
             post_process = ProximalCleanup(prox)
 
         if isinstance(model, ConvexReLU):
-            opt = CVXPYReLUSolver(optimizer.solver, optimizer.solver_kwargs)
+            opt = CVXPYReLUSolver(
+                optimizer.solver,
+                optimizer.solver_kwargs,
+            )
         elif isinstance(model, ConvexGatedReLU):
             opt = CVXPYGatedReLUSolver(
-                optimizer.solver, optimizer.solver_kwargs
+                optimizer.solver,
+                optimizer.solver_kwargs,
             )
         else:
             raise ValueError(f"Model {model} not recognized by CVXPYSolver.")

@@ -106,10 +106,7 @@ class LinearSupportFinder(SupportFinder):
                 best_mse = m.test_mse[-1]
                 best_index = i
 
-        non_zeros = (
-            lab.sum(lab.abs(path_models[best_index].parameters[0]), axis=0)
-            != 0
-        )
+        non_zeros = lab.sum(lab.abs(path_models[best_index].parameters[0]), axis=0) != 0
 
         support = lab.arange(d)[non_zeros].tolist()
 
@@ -141,9 +138,7 @@ class ForwardBackward(SupportFinder):
     ) -> List[int]:
 
         if not isinstance(model, (ConvexReLU, ConvexGatedReLU)):
-            raise ValueError(
-                "Forward-backward only supports convex reformulations."
-            )
+            raise ValueError("Forward-backward only supports convex reformulations.")
 
         p = model.p
 

@@ -45,6 +45,8 @@ from typing import List, Optional
 
 import numpy as np
 
+import lab
+
 
 class Model:
     """Base class for convex and non-convex models.
@@ -63,6 +65,20 @@ class Model:
     bias: bool
     parameters: List[np.ndarray]
 
+    def get_parameters(self) -> List[np.ndarray]:
+        raise NotImplementedError()
+
+    def set_parameters(self, parameters: List[np.ndarray]):
+        raise NotImplementedError()
+
+    def _to_lab_tensor(self):
+        """Move model to be lab parameters."""
+        params = []
+        for p in self.get_parameters():
+            params.append(lab.tensor(p, dtype=lab.get_dtype()))
+
+        self.set_parameters(params)
+
 
 class GatedModel(Model):
     """Abstract class for models with fixed gate vectors.
@@ -75,6 +91,8 @@ class GatedModel(Model):
         G: the gate vectors for the Gated ReLU activation stored as a
             (d x p) matrix.
         G_bias: an optional vector of biases for the gates.
+        skip_connection: whether or not the model includes a linear skip
+            connection.
     """
 
     def __init__(
@@ -83,6 +101,7 @@ class GatedModel(Model):
         c: int,
         bias: bool = False,
         G_bias: Optional[np.ndarray] = None,
+        skip_connection: bool = False,
     ):
         """Construct a new convex Gated ReLU model.
 
@@ -93,6 +112,8 @@ class GatedModel(Model):
             bias: whether or not to include a bias term.
             G_bias: a vector of bias parameters for the gates.
                 Note that `bias` must be True for this to be supported.
+            skip_connection: whether or not the model should include a linear
+                skip connection.
         """
         self.G = G
         self.d, self.p = G.shape
@@ -105,6 +126,12 @@ class GatedModel(Model):
 
         if self.G_bias is None:
             self.G_bias = np.zeros(self.p)
+
+        self.skip_connection = skip_connection
+        self.skip_model: Optional[LinearModel] = None
+
+        if self.skip_connection:
+            self.skip_model = LinearModel(self.d, self.c, self.bias)
 
     def compute_activations(self, X: np.ndarray) -> np.ndarray:
         """Compute activations for models with fixed gate vectors.
@@ -119,6 +146,24 @@ class GatedModel(Model):
         D[D > 0] = 1
 
         return D
+
+    def get_parameters(self) -> List[np.ndarray]:
+        """Get the model parameters."""
+        params = self.parameters
+
+        if self.skip_model is not None:
+            params = params + self.skip_model.get_parameters()
+
+        return params
+
+    def _to_lab_tensor(self):
+        """Move model to be lab parameters."""
+        super()._to_lab_tensor()
+
+        self.G = lab.tensor(self.G, dtype=lab.get_dtype())
+
+        if self.G_bias is not None:
+            self.G_bias = lab.tensor(self.G_bias, dtype=lab.get_dtype())
 
 
 class LinearModel(Model):
@@ -149,7 +194,7 @@ class LinearModel(Model):
         self.bias = bias
 
         if self.bias:
-            self.parameters = [np.zeros((c, d)), np.zeros((1))]
+            self.parameters = [np.zeros((c, d)), np.zeros((c))]
         else:
             self.parameters = [np.zeros((c, d))]
 
@@ -168,11 +213,11 @@ class LinearModel(Model):
         assert parameters[0].shape == (self.c, self.d)
 
         if self.bias:
-            assert parameters[1].shape == (1)
+            assert parameters[1].shape == (self.c,)
 
         self.parameters = parameters
 
-    def __call__(self, X: np.ndarray) -> np.ndarray:
+    def __call__(self, X: np.ndarray, **kwargs) -> np.ndarray:
         """Compute the model predictions for a given dataset.
 
         Args:
@@ -210,6 +255,8 @@ class ConvexGatedReLU(GatedModel):
         G: the gate vectors for the Gated ReLU activation stored as a
             (d x p) matrix.
         G_bias: an optional vector of biases for the gates.
+        skip_connection: whether or not the model includes a linear skip
+            connection.
         parameters: the parameters of the model stored as a list of tensors.
     """
 
@@ -221,6 +268,7 @@ class ConvexGatedReLU(GatedModel):
         c: int = 1,
         bias: bool = False,
         G_bias: Optional[np.ndarray] = None,
+        skip_connection: bool = False,
     ) -> None:
         """Construct a new convex Gated ReLU model.
 
@@ -231,9 +279,11 @@ class ConvexGatedReLU(GatedModel):
             bias: whether or not to include a bias term.
             G_bias: a vector of bias parameters for the gates.
                 Note that `bias` must be True for this to be supported.
+            skip_connection: whether or not the model should include a linear
+                skip connection.
         """
 
-        super().__init__(G, c, bias, G_bias)
+        super().__init__(G, c, bias, G_bias, skip_connection)
 
         # one linear model per gate vector
         if self.bias:
@@ -243,10 +293,6 @@ class ConvexGatedReLU(GatedModel):
             ]
         else:
             self.parameters = [np.zeros((c, self.p, self.d))]
-
-    def get_parameters(self) -> List[np.ndarray]:
-        """Get the model parameters."""
-        return self.parameters
 
     def set_parameters(self, parameters: List[np.ndarray]):
         """Set the model parameters.
@@ -261,9 +307,13 @@ class ConvexGatedReLU(GatedModel):
         if self.bias:
             assert parameters[1].shape == (self.c, self.p)
 
-        self.parameters = parameters
+        self.parameters = parameters[0:2]
 
-    def __call__(self, X: np.ndarray) -> np.ndarray:
+        print(parameters)
+        if self.skip_model:
+            self.skip_model.set_parameters(parameters[2:])
+
+    def __call__(self, X: np.ndarray, **kwargs) -> np.ndarray:
         """Compute the model predictions for a given dataset.
 
         Args:
@@ -277,14 +327,22 @@ class ConvexGatedReLU(GatedModel):
 
         if self.bias:
             Z = (
-                np.einsum("ij, lkj->lik", X, self.parameters[0])
+                np.einsum(
+                    "ij, lkj->lik",
+                    X,
+                    self.parameters[0],
+                )
                 + self.parameters[1]
             )
 
-            # TODO: need to check this computation.
-            return np.einsum("lik, ik->il", Z, D)
+            preds = np.einsum("lik, ik->il", Z, D)
         else:
-            return np.einsum("ij, lkj, ik->il", X, self.parameters[0], D)
+            preds = np.einsum("ij, lkj, ik->il", X, self.parameters[0], D)
+
+        if self.skip_connection:
+            preds = preds + self.skip_model(X)
+
+        return preds
 
 
 class NonConvexGatedReLU(GatedModel):
@@ -304,6 +362,8 @@ class NonConvexGatedReLU(GatedModel):
             (d x p) matrix.
         G_bias: an optional vector of biases for the gates.
         parameters: the parameters of the model stored as a list of tensors.
+        skip_connection: whether or not the model includes a linear skip
+            connection.
     """
 
     def __init__(
@@ -312,6 +372,7 @@ class NonConvexGatedReLU(GatedModel):
         c: int = 1,
         bias: bool = False,
         G_bias: Optional[np.ndarray] = None,
+        skip_connection: bool = False,
     ) -> None:
         """
         Args:
@@ -320,8 +381,10 @@ class NonConvexGatedReLU(GatedModel):
             bias: whether or not to include a bias term.
             G_bias: a vector of bias parameters for the gates.
                 Note that `bias` must be True for this to be supported.
+            skip_connection: whether or not the model should include a linear
+                skip connection.
         """
-        super().__init__(G, c, bias, G_bias)
+        super().__init__(G, c, bias, G_bias, skip_connection)
 
         # one linear model per gate vector
         if self.bias:
@@ -336,14 +399,6 @@ class NonConvexGatedReLU(GatedModel):
                 np.zeros((self.c, self.p)),
             ]
 
-    def get_parameters(self) -> List[np.ndarray]:
-        """Get the model parameters.
-
-        Returns: A list of model parameters.
-        """
-
-        return self.parameters
-
     def set_parameters(self, parameters: List[np.ndarray]):
         """Set the model parameters.
 
@@ -353,17 +408,22 @@ class NonConvexGatedReLU(GatedModel):
             parameters: the new model parameters.
         """
         assert parameters[0].shape == (self.p, self.d)
+
         if self.bias:
-            assert len(parameters) == 3
             assert parameters[1].shape == (self.p,)
             assert parameters[2].shape == (self.c, self.p)
+            self.parameters = parameters[0:3]
+
+            if self.skip_connection:
+                self.skip_model.set_parameters(parameters[3:])
         else:
-            assert len(parameters) == 2
             assert parameters[1].shape == (self.c, self.p)
+            self.parameters = parameters[0:2]
 
-        self.parameters = parameters
+            if self.skip_connection:
+                self.skip_model.set_parameters(parameters[2:])
 
-    def __call__(self, X: np.ndarray) -> np.ndarray:
+    def __call__(self, X: np.ndarray, **kwargs) -> np.ndarray:
         """Compute the model predictions for a given dataset.
 
         Args:
@@ -376,10 +436,20 @@ class NonConvexGatedReLU(GatedModel):
 
         Z = X @ self.parameters[0].T
 
+        idx = 1
         if self.bias:
+            idx = 2
             Z += self.parameters[1]
 
-        return np.multiply(D, Z) @ self.parameters[-1].T
+        if isinstance(Z, np.ndarray):
+            preds = np.multiply(D, Z) @ self.parameters[idx].T
+        else:
+            preds = lab.multiply(D, Z) @ self.parameters[idx].T
+
+        if self.skip_connection:
+            preds = preds + self.skip_model(X)
+
+        return preds
 
 
 class ConvexReLU(GatedModel):
@@ -402,6 +472,8 @@ class ConvexReLU(GatedModel):
         G_bias: an optional vector of biases for the gates.
         parameters: the parameters of the model stored as a list of two
             (c x p x d) matrices.
+        skip_connection: whether or not the model includes a linear skip
+            connection.
     """
 
     def __init__(
@@ -410,6 +482,7 @@ class ConvexReLU(GatedModel):
         c: int = 1,
         bias: bool = False,
         G_bias: Optional[np.ndarray] = None,
+        skip_connection: bool = False,
     ) -> None:
         """Construct a new convex Gated ReLU model.
 
@@ -419,9 +492,11 @@ class ConvexReLU(GatedModel):
             bias: whether or not to include a bias term.
             G_bias: a vector of bias parameters for the gates.
                 Note that `bias` must be True for this to be supported.
+            skip_connection: whether or not the model should include a linear
+                skip connection.
         """
 
-        super().__init__(G, c, bias, G_bias)
+        super().__init__(G, c, bias, G_bias, skip_connection)
 
         # one linear model per gate vector
         if self.bias:
@@ -437,10 +512,6 @@ class ConvexReLU(GatedModel):
                 np.zeros((c, self.p, self.d)),
             ]
 
-    def get_parameters(self) -> List[np.ndarray]:
-        """Get the model parameters."""
-        return self.parameters
-
     def set_parameters(self, parameters: List[np.ndarray]):
         """Set the model parameters.
 
@@ -450,19 +521,24 @@ class ConvexReLU(GatedModel):
             parameters: the new model parameters.
         """
         if self.bias:
-            assert len(parameters) == 4
             assert parameters[0].shape == (self.c, self.p, self.d)
-            assert parameters[2].shape == (self.c, self.p)
-            assert parameters[3].shape == (self.c, self.p, self.d)
-            assert parameters[4].shape == (self.c, self.p)
+            assert parameters[1].shape == (self.c, self.p)
+            assert parameters[2].shape == (self.c, self.p, self.d)
+            assert parameters[3].shape == (self.c, self.p)
+            self.parameters = parameters[0:4]
+
+            if self.skip_connection:
+                self.skip_model.set_parameters(parameters[4:])
+
         else:
-            assert len(parameters) == 2
             assert parameters[0].shape == (self.c, self.p, self.d)
             assert parameters[1].shape == (self.c, self.p, self.d)
+            self.parameters = parameters[0:2]
 
-        self.parameters = parameters
+            if self.skip_connection:
+                self.skip_model.set_parameters(parameters[2:])
 
-    def __call__(self, X: np.ndarray) -> np.ndarray:
+    def __call__(self, X: np.ndarray, **kwargs) -> np.ndarray:
         """Compute the model predictions for a given dataset.
 
         Args:
@@ -473,19 +549,21 @@ class ConvexReLU(GatedModel):
         """
         D = super().compute_activations(X)
 
-        p_diff = self.parameters[0] - self.parameters[1]
-
         if self.bias:
             bias_diff = self.parameters[1] - self.parameters[3]
             p_diff = self.parameters[0] - self.parameters[2]
 
             Z = np.einsum("ij, lkj->lik", X, p_diff) + bias_diff
 
-            # TODO: need to check this computation.
-            return np.einsum("lik, ik->il", Z, D)
+            preds = np.einsum("lik, ik->il", Z, D)
         else:
             p_diff = self.parameters[0] - self.parameters[1]
-            return np.einsum("ij, lkj, ik->il", X, p_diff, D)
+            preds = np.einsum("ij, lkj, ik->il", X, p_diff, D)
+
+        if self.skip_connection:
+            preds = preds + self.skip_model(X)
+
+        return preds
 
 
 class NonConvexReLU(Model):
@@ -502,6 +580,8 @@ class NonConvexReLU(Model):
         bias: whether or not the model uses a bias term.
         parameters: the parameters of the model stored as a list of matrices
             with shapes: [(p x d), (c x p)]
+        skip_connection: whether or not the model includes a linear skip
+            connection.
     """
 
     def __init__(
@@ -510,6 +590,7 @@ class NonConvexReLU(Model):
         p: int,
         c: int = 1,
         bias: bool = False,
+        skip_connection: bool = False,
     ) -> None:
         """Construct a new convex Gated ReLU model.
 
@@ -518,12 +599,15 @@ class NonConvexReLU(Model):
             p: the number of neurons or "hidden units" in the network.
             c: the output dimension.
             bias: whether or not to include a bias term.
+            skip_connection: whether or not the model should include a linear
+                skip connection.
         """
 
         self.d = d
         self.p = p
         self.c = c
         self.bias = bias
+        self.skip_connection = skip_connection
 
         if self.bias:
             self.parameters = [
@@ -537,13 +621,20 @@ class NonConvexReLU(Model):
                 np.zeros((self.c, self.p)),  # second layer weights
             ]
 
+        self.skip_connection = skip_connection
+        self.skip_model: Optional[LinearModel] = None
+
+        if self.skip_connection:
+            self.skip_model = LinearModel(self.d, self.c, self.bias)
+
     def get_parameters(self) -> List[np.ndarray]:
-        """Get the model parameters.
+        """Get the model parameters."""
+        params = self.parameters
 
-        Returns: list of model parameters.
-        """
+        if self.skip_model is not None:
+            params = params + self.skip_model.get_parameters()
 
-        return self.parameters
+        return params
 
     def set_parameters(self, parameters: List[np.ndarray]):
         """Set the model parameters.
@@ -554,18 +645,24 @@ class NonConvexReLU(Model):
             parameters: the new model parameters.
         """
         if self.bias:
-            assert len(parameters) == 3
             assert parameters[0].shape == (self.p, self.d)
             assert parameters[1].shape == (self.p,)
             assert parameters[2].shape == (self.c, self.p)
+
+            self.parameters = parameters[0:3]
+
+            if self.skip_connection:
+                self.skip_model.set_parameters(parameters[3:])
         else:
-            assert len(parameters) == 2
             assert parameters[0].shape == (self.p, self.d)
             assert parameters[1].shape == (self.c, self.p)
 
-        self.parameters = parameters
+            self.parameters = parameters[0:2]
 
-    def __call__(self, X: np.ndarray) -> np.ndarray:
+            if self.skip_connection:
+                self.skip_model.set_parameters(parameters[2:])
+
+    def __call__(self, X: np.ndarray, **kwargs) -> np.ndarray:
         """Compute the model predictions for a given dataset.
 
         Args:
@@ -576,7 +673,17 @@ class NonConvexReLU(Model):
         """
         Z = X @ self.parameters[0].T
 
+        idx = 1
         if self.bias:
+            idx = 2
             Z += self.parameters[1]
 
-        return np.maximum(Z, 0) @ self.parameters[-1].T
+        if isinstance(Z, np.ndarray):
+            preds = np.maximum(Z, 0) @ self.parameters[idx].T
+        else:
+            preds = lab.smax(Z, 0) @ self.parameters[idx].T
+
+        if self.skip_connection:
+            preds = preds + self.skip_model(X)
+
+        return preds

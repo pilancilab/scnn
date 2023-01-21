@@ -7,10 +7,10 @@ import timeit
 from typing import Any, Dict, List, Optional, Tuple
 
 import scnn.private.loss_functions as loss_fns
-import scnn.private.models.solution_mappings as sm
 import lab
 from scnn.private.models import AL_MLP, ConvexMLP
 from scnn.private.models.model import Model
+from scnn.private.interface import get_nc_formulation
 
 
 def as_list(x: Any) -> List[Any]:
@@ -61,9 +61,7 @@ def format_recent_metrics(
         if metric_name == "subproblem_metrics":
             continue
 
-        metric_str = (
-            metric_str + f"{metric_name}: {metric_dict[metric_name][-1]}, "
-        )
+        metric_str = metric_str + f"{metric_name}: {metric_dict[metric_name][-1]}, "
 
     return metric_str
 
@@ -225,17 +223,15 @@ def compute_metric(
         metric = lab.to_scalar(objective)
     elif metric_name == "squared_error":
         metric = lab.to_scalar(
-            loss_fns.squared_error(model(X, batch_size=batch_size), y)
-            / y.shape[0]
+            loss_fns.squared_error(model(X, batch_size=batch_size), y) / y.shape[0]
         )
     elif metric_name == "grad_norm":
         if grad is None:
             grad = model.grad(X, y, batch_size=batch_size)
-        metric = lab.to_scalar(lab.sum(grad ** 2))
+        metric = lab.to_scalar(lab.sum(grad**2))
     elif metric_name == "binary_accuracy":
         metric = lab.to_scalar(
-            lab.sum(lab.sign(model(X, batch_size=batch_size)) == y)
-            / y.shape[0]
+            lab.sum(lab.sign(model(X, batch_size=batch_size)) == y) / y.shape[0]
         )
     elif metric_name == "binned_accuracy":
         metric = lab.to_scalar(
@@ -248,8 +244,7 @@ def compute_metric(
             )
         else:
             metric = lab.to_scalar(
-                lab.sum(lab.sign(model(X, batch_size=batch_size)) == y)
-                / y.shape[0]
+                lab.sum(lab.sign(model(X, batch_size=batch_size)) == y) / y.shape[0]
             )
     elif metric_name == "time_stamp":
         metric = timeit.default_timer()
@@ -282,16 +277,12 @@ def compute_metric(
     elif metric_name == "active_neurons":
         metric = lab.to_scalar(lab.sum(lab.sum(model.weights, axis=-1) != 0.0))
     elif metric_name == "sparsity":
-        metric = lab.to_scalar(
-            lab.sum(model.weights == 0) / lab.size(model.weights)
-        )
+        metric = lab.to_scalar(lab.sum(model.weights == 0) / lab.size(model.weights))
     elif metric_name == "group_norms":
-        metric = lab.to_scalar(
-            lab.sum(lab.sqrt(lab.sum(model.weights ** 2, axis=-1)))
-        )
+        metric = lab.to_scalar(lab.sum(lab.sqrt(lab.sum(model.weights**2, axis=-1))))
     elif metric_name == "dual_param_norm":
         try:
-            metric = lab.to_scalar(lab.sum(model.i_multipliers ** 2))
+            metric = lab.to_scalar(lab.sum(model.i_multipliers**2))
         except:
             metric = lab.tensor([0.0])
     elif metric_name == "constraint_gaps":
@@ -300,7 +291,7 @@ def compute_metric(
         except:
             e_gap = i_gap = lab.tensor([0.0])
 
-        metric = lab.to_scalar(lab.sum(e_gap ** 2 + lab.smax(i_gap, 0) ** 2))
+        metric = lab.to_scalar(lab.sum(e_gap**2 + lab.smax(i_gap, 0) ** 2))
     elif metric_name == "lagrangian_grad":
         try:
             metric = lab.to_scalar(lab.sum(model.lagrangian_grad(X, y) ** 2))
@@ -321,7 +312,14 @@ def compute_metric(
 
         # compute the non-convex model if one exists
         if isinstance(model, ConvexMLP):
-            nc_model = sm.get_nc_formulation(model, remove_sparse=True)
+            nc_model = get_nc_formulation(model)
+
+            # strip off bias column
+            if nc_model.bias:
+                data = X[:, 0:-1], y
+
+            # remove bias columns
+            nc_model._to_lab_tensor()
 
         compute_metric(
             metric_name.split("nc_")[1],

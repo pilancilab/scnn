@@ -11,7 +11,7 @@ import math
 import os
 import pickle as pkl
 from copy import deepcopy
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Dict, Any
 from typing_extensions import Literal
 
 import numpy as np
@@ -24,7 +24,7 @@ from scnn.private.interface import (
     build_internal_regularizer,
     build_metrics_tuple,
     build_optimizer,
-    build_public_model,
+    get_nc_formulation,
     get_logger,
     normalized_into_input_space,
     process_data,
@@ -32,7 +32,6 @@ from scnn.private.interface import (
     update_public_metrics,
     update_public_model,
 )
-from scnn.private.models.solution_mappings import get_nc_formulation
 from scnn.regularizers import Regularizer
 from scnn.solvers import (
     AL,
@@ -64,7 +63,7 @@ def optimize(
     device: Device = "cpu",
     dtype: Dtype = "float32",
     seed: int = 778,
-) -> Tuple[Model, Metrics]:
+) -> Tuple[Model, Metrics, Dict[str, Any]]:
     """Convenience function for training neural networks by convex
     reformulation.
 
@@ -98,8 +97,8 @@ def optimize(
         seed: an integer seed for reproducibility.
 
     Returns:
-        (Model, Metrics): the optimized model and metrics collected during
-        optimization.
+        (Model, Metrics, Exit Status): the optimized model and metrics collected
+        during optimization.
     """
 
     model: Model
@@ -162,7 +161,7 @@ def optimize_model(
     device: Device = "cpu",
     dtype: Dtype = "float32",
     seed: int = 778,
-) -> Tuple[Model, Metrics]:
+) -> Tuple[Model, Metrics, Dict[str, Any]]:
     """Train a neural network by convex reformulation.
 
     Args:
@@ -190,7 +189,8 @@ def optimize_model(
         seed: an integer seed for reproducibility.
 
     Returns:
-        The optimized model and metrics collected during optimization.
+        (Model, Metrics, Exit Status): the optimized model and metrics collected
+        during optimization.
     """
     logger = get_logger("scnn", verbose, False, log_file)
 
@@ -246,13 +246,15 @@ def optimize_model(
         )
 
     if return_convex:
-        return update_public_model(model, internal_model), metrics
+        return_model = update_public_model(model, internal_model)
+    else:
+        return_model = get_nc_formulation(internal_model)
 
-    # convert into internal non-convex model
-    nc_internal_model = get_nc_formulation(internal_model, remove_sparse=True)
-
-    # create non-convex model
-    return build_public_model(nc_internal_model, model.bias), metrics
+    return (
+        return_model,
+        metrics,
+        exit_status,
+    )
 
 
 def optimize_path(
@@ -273,7 +275,7 @@ def optimize_path(
     device: Device = "cpu",
     dtype: Dtype = "float32",
     seed: int = 778,
-) -> Tuple[List[Union[Model, str]], List[Metrics]]:
+) -> Tuple[List[Union[Model, str]], List[Metrics], List[Dict[str, Any]]]:
     """Train a neural network by convex reformulation.
 
     Args:
@@ -339,6 +341,7 @@ def optimize_path(
 
     metrics_list: List[Metrics] = []
     model_list: List[Union[Model, str]] = []
+    status_list: List[Dict[str, Any]] = []
 
     for regularizer in path:
         # update internal regularizer
@@ -355,6 +358,7 @@ def optimize_path(
             (X_test, y_test),
             metrics_tuple,
         )
+        status_list.append(exit_status)
 
         # regularizer to_string to generate path
         metrics = update_public_metrics(metrics, internal_metrics)
@@ -368,8 +372,7 @@ def optimize_path(
         if return_convex:
             model_to_save = update_public_model(model, internal_model)
         else:
-            nc_internal_model = get_nc_formulation(internal_model, remove_sparse=True)
-            model_to_save = build_public_model(nc_internal_model, model.bias)
+            model_to_save = get_nc_formulation(internal_model)
 
         if save_path is not None:
 
@@ -385,4 +388,4 @@ def optimize_path(
         metrics_list.append(deepcopy(metrics))
         internal_model.weights = cur_weights
 
-    return model_list, metrics_list
+    return model_list, metrics_list, status_list

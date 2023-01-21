@@ -13,6 +13,8 @@ from .non_convex import (
 from .convex import (
     ConvexMLP,
     AL_MLP,
+    SkipMLP,
+    SkipALMLP,
 )
 
 from .decompositions import QuadraticDecomposition
@@ -24,16 +26,18 @@ from .regularizers import (
     Constraint,
     GroupL1Orthant,
     GroupL1Regularizer,
+    SkipGroupL1Regularizer,
     FeatureGroupL1Regularizer,
     L2Regularizer,
     L1Regularizer,
     OrthantConstraint,
     L1SquaredRegularizer,
+    CardinalityConstraint,
 )
 
 from .solution_mappings import (
-    is_compatible,
-    get_nc_formulation,
+    grelu_solution_mapping,
+    relu_solution_mapping,
 )
 
 
@@ -47,18 +51,22 @@ __all__ = [
     "GatedReLUMLP",
     "GatedReLULayer",
     "ConvexMLP",
+    "SkipMLP",
     "AL_MLP",
+    "SkipALMLP",
     "QuadraticDecomposition",
     "OneVsAllModel",
     "Regularizer",
     "Constraint",
     "GroupL1Regularizer",
+    "SkipGroupL1Regularizer",
     "FeatureGroupL1Regularizer",
     "GroupL1Orthant",
     "L2Regularizer",
     "L1Regularizer",
     "L1SquaredRegularizer",
     "OrthantConstraint",
-    "is_compatible",
-    "get_nc_formulation",
+    "CardinalityConstraint",
+    "grelu_solution_mapping",
+    "relu_solution_mapping",
 ]

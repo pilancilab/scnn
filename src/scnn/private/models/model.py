@@ -61,6 +61,8 @@ class Model:
     # private fields
 
     _train: bool = True
+    _bias: bool
+    _skip_connection: bool
 
     def __init__(self, regularizer: Optional[Regularizer] = None):
         self.regularizer = regularizer
@@ -79,8 +81,7 @@ class Model:
         n_batches = ceil(n / batch_size)
 
         return [
-            {"X": X[i * batch_size : (i + 1) * batch_size]}
-            for i in range(n_batches)
+            {"X": X[i * batch_size : (i + 1) * batch_size]} for i in range(n_batches)
         ]
 
     def batch_Xy(
@@ -258,9 +259,7 @@ class Model:
         w = self._weights(w)
         model_grad = lab.zeros_like(w)
         for batch in self.batch_Xy(batch_size, X, y):
-            model_grad += self._grad(
-                **batch, w=w, scaling=y.shape[0], **kwargs
-            )
+            model_grad += self._grad(**batch, w=w, scaling=y.shape[0], **kwargs)
 
         grad = model_grad
         if self.regularizer is not None and not ignore_regularizer:

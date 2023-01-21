@@ -19,7 +19,7 @@ import math
 import numpy as np
 from scipy.stats import ortho_group  # type: ignore
 
-Transform = Literal["cosine", "polynomial"]
+Transform = Literal["cosine", "cubic", "product"]
 
 # local types
 
@@ -134,7 +134,7 @@ def gen_regression_data(
     y = np.dot(X, w_opt)
 
     if sigma != 0:
-        y = y + rng.normal(0, scale=sigma)
+        y = y + rng.normal(0, scale=sigma, size=y.shape)
 
     train_set = (X[:n], y[:n])
     test_set = (X[n:], y[n:])
@@ -167,9 +167,9 @@ def gen_sparse_regression_problem(
             Defaults to `0` for a noiseless model.
         kappa: condition number of E[X.T X].
             Defaults to 1.
-        nnz: number of non-zeros zeros in the true model.
+        nnz: number of non-zeros features in the true model.
         transform: a non-linear transformation. This must be `None`,
-            `'cosine'`, `'polynomial'`, `'product'`, or a callable function that applies a
+            `'cosine'`, `'cubic'`, `'product'`, or a callable function that applies a
             custom transformation.
 
     Returns:
@@ -190,7 +190,10 @@ def gen_sparse_regression_problem(
         w_opt = w_opt * mask
 
     # sample covariance matrix.
-    Sigma = sample_covariance_matrix(rng, d, kappa)
+    if kappa == 1:
+        Sigma = np.eye(d)
+    else:
+        Sigma = sample_covariance_matrix(rng, d, kappa)
 
     X = rng.multivariate_normal(np.zeros(d), cov=Sigma, size=n + n_test)
     y = np.dot(X, w_opt)
@@ -203,7 +206,10 @@ def gen_sparse_regression_problem(
         y = np.cos(y)
     elif transform == "cubic":
         # simple cubic
-        y = y + (y**2) / 2 + (y**3) / 6
+        assert nnz >= 2
+        y = X[:, non_zero_indices[0]] ** 3 + X[:, non_zero_indices[1]] ** 2
+        y += np.sum(X[:, non_zero_indices[2:]], axis=-1)
+
     elif transform == "product":
         y = np.sign(np.prod(X[:, non_zero_indices], axis=1))
     else:
@@ -217,12 +223,94 @@ def gen_sparse_regression_problem(
 
     # add noise
     if sigma != 0:
-        y = y + rng.normal(0, scale=sigma)
+        # set so sigma is exactly equal to SNR.
+        scale = np.sqrt(sigma / np.var(y))
+        y = y + rng.normal(0, scale=scale, size=y.shape)
 
     train_set = (X[:n], y[:n])
     test_set = (X[n:], y[n:])
 
     return train_set, test_set, w_opt
+
+
+def gen_sparse_nn_problem(
+    data_seed: int,
+    n: int,
+    n_test: int,
+    d: int,
+    hidden_units: int = 50,
+    sigma: float = 0,
+    kappa: float = 1.0,
+    nnz: Optional[int] = None,
+) -> Tuple[Dataset, Dataset]:
+    """Create a binary classification dataset with a random Gaussian design
+    matrix and targets given by a two-layer neural network with random Gaussian
+    weights.
+
+    If `kappa` is supplied, then the design matrix satisfies
+    :math:`\\kappa(X) \\approx \\text{kappa}`.
+
+    Args:
+        data_seed: the seed to use when generating the synthetic dataset.
+        n: number of examples in dataset.
+        n_test: number of test examples.
+        d: number of features for each example.
+        hidden_units: (optional) the number of hidden units in the neural
+            network.
+        sigma: variance of (Gaussian) noise added to targets.
+            Defaults to `0` for a noiseless model.
+        kappa: (optional) the (approximate) condition number of the train/test
+            design matrices.
+        nnz: number of non-zeros in the true model.
+
+    Returns:
+        A training set `(X_train, y_train)` and test set `(X_test, y_test)`.
+    """
+    rng = np.random.default_rng(seed=data_seed)
+
+    non_zero_indices = np.arange(d)
+
+    if nnz is not None:
+        non_zero_indices = rng.choice(d, size=nnz, replace=False)
+    else:
+        nnz = d
+
+    w = rng.random(nnz * hidden_units + hidden_units)
+    w1 = w[: nnz * hidden_units].reshape(hidden_units, nnz)
+    w2 = w[nnz * hidden_units :].reshape(1, hidden_units)
+
+    Sigma = sample_covariance_matrix(rng, d, kappa)
+
+    X = []
+    y = []
+
+    for i in range(n + n_test):
+        xi = rng.multivariate_normal(np.zeros(d), cov=Sigma)
+        f_xi = xi[non_zero_indices]
+        # compute forward pass
+        yi = np.maximum(f_xi @ w1.T, 0) @ w2.T
+        y.append(yi)
+        X.append(xi)
+
+    # Add noise to problem.
+
+    X_np = np.array(X)
+    y_np = np.array(y).reshape(-1, 1)
+
+    if sigma != 0:
+        # set so sigma is exactly equal to SNR.
+        scale = np.sqrt(sigma / np.var(y_np))
+        y_np = y_np + rng.normal(0, scale=scale, size=y_np.shape)
+
+    # shuffle dataset.
+    indices = np.arange(n + n_test)
+    rng.shuffle(indices)
+    X_np, y_np = X_np[indices], y_np[indices]
+
+    train_set = (X_np[:n], y_np[:n])
+    test_set = (X_np[n:], y_np[n:])
+
+    return train_set, test_set
 
 
 def sample_covariance_matrix(

@@ -60,9 +60,7 @@ class RFISTA(Optimizer):
             subgradient.
     """
 
-    def __init__(
-        self, model: Model, max_iters: int = 10000, tol: float = 1e-6
-    ):
+    def __init__(self, model: Model, max_iters: int = 10000, tol: float = 1e-6):
         """
         Args:
             model: the model to be optimized. It will be checked for
@@ -149,9 +147,7 @@ class AL(Optimizer):
             delta: the initial penalty strength.
         """
         if not isinstance(model, (ConvexReLU)):
-            raise ValueError(
-                "The AL optimizer can only be used to train ReLU models."
-            )
+            raise ValueError("The AL optimizer can only be used to train ReLU models.")
 
         super().__init__(model)
         self.max_primal_iters = max_primal_iters
@@ -262,7 +258,11 @@ class CVXPYSolver(Optimizer):
     supported_solvers: List[str] = ["ecos", "cvxopt", "scs", "gurobi", "mosek"]
 
     def __init__(
-        self, model: Model, solver, solver_kwargs={}, clean_sol=False
+        self,
+        model: Model,
+        solver,
+        solver_kwargs={},
+        clean_sol=False,
     ):
         """
         Args:
@@ -280,7 +280,6 @@ class CVXPYSolver(Optimizer):
             clean_sol: whether or not to clean the solution using a
                 proximal-gradient step. This is only supported for Gated ReLU
                 problems.
-
         """
         super().__init__(model)
 
@@ -315,7 +314,7 @@ class ExactConeDecomposition(Optimizer):
     and then decomposes the solution :math:`u^*` onto the Minkowski differences
     :math:`K_i - K_i` to approximate the ReLU training problem. The cone
     decomposition is solved exactly using interior-point methods and
-    CVXPY...
+    CVXPY.
     """
 
     def __init__(self):
