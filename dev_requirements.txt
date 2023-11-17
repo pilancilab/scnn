@@ -8,3 +8,5 @@ pyflakes==2.4.0
 pylint==2.14.1
 pyparsing==3.0.9
 typing_extensions==4.2.0
+build
+twine
