@@ -56,7 +56,10 @@ def unitize_columns(
     X_train = train_set[0]
     column_norms = np.sqrt(np.sum(X_train**2, axis=0, keepdims=True))
 
-    X_train = X_train / column_norms
+    # safe division by columns
+    X_train = np.divide(
+        X_train, column_norms, out=np.zeros_like(X_train), where=column_norms != 0
+    )
     train_set = (X_train, train_set[1])
 
     if test_set is not None:

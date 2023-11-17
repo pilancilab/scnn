@@ -577,4 +577,4 @@ class NonConvexReLU(Model):
         if self.bias:
             Z += self.parameters[1]
 
-        return np.max(Z, 0) @ self.parameters[-1].T
+        return np.maximum(Z, 0) @ self.parameters[-1].T
