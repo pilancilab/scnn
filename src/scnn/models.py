@@ -41,7 +41,7 @@ Overview:
     reformulation when the output dimension satisfies :math:`c > 1`.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Callable
 
 import numpy as np
 
@@ -274,12 +274,114 @@ class ConvexGatedReLU(GatedModel):
         D = super().compute_activations(X)
 
         if self.bias:
-            Z = (
-                np.einsum("ij, lkj->lik", X, self.parameters[0])
-                + self.parameters[1]
-            )
+            Z = np.einsum("ij, lkj->lik", X, self.parameters[0]) + self.parameters[1]
 
             # TODO: need to check this computation.
+            return np.einsum("lik, ik->il", Z, D)
+        else:
+            return np.einsum("ij, lkj, ik->il", X, self.parameters[0], D)
+
+
+class DeepConvexGatedReLU(GatedModel):
+    """Convex reformulation of a Gated ReLU Network with arbitrary layers.
+
+    This model has the prediction function
+
+    .. math::
+
+        g(X) = \\sum_{i=1}^m \\text{diag}(X g_i > 0) X U_{1i}.
+
+    A one-vs-all strategy is used to extend the model to multi-dimensional
+    targets.
+
+    Attributes:
+        c: the output dimension.
+        d: the input dimension.
+        p: the number of neurons.
+        bias: whether or not the model uses a bias term.
+        G_fn: a function that can be called to obtain activation patterns.
+        parameters: the parameters of the model stored as a list of tensors.
+    """
+
+    def __init__(
+        self,
+        G_fn: Callable,
+        d: int,
+        p: int,
+        c: int = 1,
+        bias: bool = False,
+    ) -> None:
+        """Construct a new convex Gated ReLU model.
+
+        Args:
+            G_fn: a function that can be called to obtain activation patterns.
+            d: the input dimension.
+            p: the number of neurons.
+            c: the output dimension.
+            bias: whether or not to include a bias term.
+        """
+        self.G_fn = G_fn
+        self.d = d
+        self.p = p
+        self.c = c
+        self.bias = bias
+
+        # one linear model per gate vector
+        if self.bias:
+            self.parameters = [
+                np.zeros((c, self.p, self.d)),
+                np.zeros((c, self.p)),
+            ]
+        else:
+            self.parameters = [np.zeros((c, self.p, self.d))]
+
+    def compute_activations(self, X: np.ndarray) -> np.ndarray:
+        """Compute activations for models with fixed gate vectors.
+
+        Args:
+            X: (n x d) matrix of input examples.
+
+        Returns:
+            D: (n x p) matrix of activation patterns.
+        """
+        D = self.G_fn(X)
+
+        return D
+
+    def get_parameters(self) -> List[np.ndarray]:
+        """Get the model parameters."""
+        return self.parameters
+
+    def set_parameters(self, parameters: List[np.ndarray]):
+        """Set the model parameters.
+
+        This method safety checks the dimensionality of the new parameters.
+
+        Args:
+            parameters: the new model parameters.
+        """
+        assert parameters[0].shape == (self.c, self.p, self.d)
+
+        if self.bias:
+            assert parameters[1].shape == (self.c, self.p)
+
+        self.parameters = parameters
+
+    def __call__(self, X: np.ndarray) -> np.ndarray:
+        """Compute the model predictions for a given dataset.
+
+        Args:
+            X: an (n  d) array containing the data examples on
+                which to predict.
+
+        Returns:
+            - g(X): the model predictions for X.
+        """
+        D = self.compute_activations(X)
+
+        if self.bias:
+            Z = np.einsum("ij, lkj->lik", X, self.parameters[0]) + self.parameters[1]
+
             return np.einsum("lik, ik->il", Z, D)
         else:
             return np.einsum("ij, lkj, ik->il", X, self.parameters[0], D)

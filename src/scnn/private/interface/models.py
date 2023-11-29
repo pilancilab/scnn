@@ -19,6 +19,7 @@ from scnn.models import (
     Model,
     LinearModel,
     ConvexGatedReLU,
+    DeepConvexGatedReLU,
     NonConvexGatedReLU,
     ConvexReLU,
     NonConvexReLU,
@@ -26,6 +27,7 @@ from scnn.models import (
 
 from scnn.private.models import (
     ConvexMLP,
+    DeepConvexMLP,
     AL_MLP,
     ReLUMLP,
     GatedReLUMLP,
@@ -92,27 +94,34 @@ def build_internal_model(
     if isinstance(model, LinearModel):
         return LinearRegression(d, c, regularizer=internal_reg)
 
-    D, G = lab.all_to_tensor(
-        compute_activation_patterns(
-            lab.to_np(X_train),
-            model.G,
-            bias=model.bias,
-        ),
-        dtype=lab.get_dtype(),
-    )
-
-    if isinstance(model, ConvexReLU):
-        internal_model = AL_MLP(
-            d,
-            D,
-            G,
-            "einsum",
-            delta=1000,
-            regularizer=internal_reg,
-            c=c,
+    elif isinstance(model, [ConvexReLU, ConvexGatedReLU]):
+        D, G = lab.all_to_tensor(
+            compute_activation_patterns(
+                lab.to_np(X_train),
+                model.G,
+                bias=model.bias,
+            ),
+            dtype=lab.get_dtype(),
         )
-    elif isinstance(model, ConvexGatedReLU):
-        internal_model = ConvexMLP(d, D, G, "einsum", regularizer=internal_reg, c=c)
+
+        if isinstance(model, ConvexReLU):
+            internal_model = AL_MLP(
+                d,
+                D,
+                G,
+                "einsum",
+                delta=1000,
+                regularizer=internal_reg,
+                c=c,
+            )
+        elif isinstance(model, ConvexGatedReLU):
+            internal_model = ConvexMLP(d, D, G, "einsum", regularizer=internal_reg, c=c)
+
+    elif isinstance(model, DeepConvexGatedReLU):
+        D = lab.tensor(model.G_fn(lab.to_np(X_train)))
+        internal_model = DeepConvexMLP(
+            d, D, model.G_fn, "einsum", regularizer=internal_reg, c=c
+        )
     else:
         raise ValueError(f"Model object {model} not supported.")
 
