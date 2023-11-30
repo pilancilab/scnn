@@ -85,7 +85,9 @@ def build_internal_model(
     Returns:
         An internal model object with the same state as the public model.
     """
-    assert isinstance(model, (LinearModel, ConvexReLU, ConvexGatedReLU))
+    assert isinstance(
+        model, (LinearModel, ConvexReLU, DeepConvexGatedReLU, ConvexGatedReLU)
+    )
 
     internal_model: InternalModel
     d, c = model.d + model.bias, model.c
@@ -94,7 +96,7 @@ def build_internal_model(
     if isinstance(model, LinearModel):
         return LinearRegression(d, c, regularizer=internal_reg)
 
-    elif isinstance(model, [ConvexReLU, ConvexGatedReLU]):
+    elif isinstance(model, (ConvexReLU, ConvexGatedReLU)):
         D, G = lab.all_to_tensor(
             compute_activation_patterns(
                 lab.to_np(X_train),
@@ -148,7 +150,6 @@ def extract_bias(weights: lab.Tensor, bias: bool = False) -> List[np.ndarray]:
 def extract_gates_bias(
     G: lab.Tensor, bias: bool = False
 ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
-
     G = lab.to_np(G)
     p = G.shape[-1]
 
@@ -183,6 +184,9 @@ def update_public_model(model: Model, internal_model: InternalModel) -> Model:
         )
 
         model.G, model.G_bias = extract_gates_bias(internal_model.U, model.bias)
+
+    elif isinstance(model, DeepConvexGatedReLU):
+        model.set_parameters(extract_bias(internal_model.weights, model.bias))
     elif isinstance(model, LinearModel):
         model.set_parameters(extract_bias(internal_model.weights, model.bias))
 

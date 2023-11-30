@@ -36,7 +36,7 @@ class DeepConvexMLP(ConvexMLP):
         :param U: array of hyperplanes creating the sign patterns.
         :param kernel: the kernel to drive the matrix-vector operations.
         """
-        super().__init__(regularizer)
+        self.regularizer = regularizer
 
         self.d = d
         self.p = D.shape[1]  # each column is a unique sign pattern
