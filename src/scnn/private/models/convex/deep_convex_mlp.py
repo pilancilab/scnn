@@ -38,7 +38,7 @@ class DeepConvexMLP(ConvexMLP):
         :param kernel: the kernel to drive the matrix-vector operations.
         :param D_test: array of possible sign for test data patterns.
         """
-        super().__init__(regularizer)
+        self.regularizer = regularizer
 
         self.d = d
         self.p = D.shape[1]  # each column is a unique sign pattern

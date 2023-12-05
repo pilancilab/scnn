@@ -16,6 +16,7 @@ from .models import (
     ConvexReLU,
     NonConvexReLU,
     ConvexGatedReLU,
+    DeepConvexGatedReLU,
     NonConvexGatedReLU,
 )
 
@@ -60,9 +61,7 @@ class RFISTA(Optimizer):
             subgradient.
     """
 
-    def __init__(
-        self, model: Model, max_iters: int = 10000, tol: float = 1e-6
-    ):
+    def __init__(self, model: Model, max_iters: int = 10000, tol: float = 1e-6):
         """
         Args:
             model: the model to be optimized. It will be checked for
@@ -71,7 +70,7 @@ class RFISTA(Optimizer):
             tol: the tolerance for terminating the optimization procedure.
         """
 
-        if not isinstance(model, (ConvexGatedReLU, LinearModel)):
+        if not isinstance(model, (DeepConvexGatedReLU, ConvexGatedReLU, LinearModel)):
             raise ValueError(
                 "R-FISTA can only be used to train Gated ReLU models and \
                         linear model."
@@ -149,9 +148,7 @@ class AL(Optimizer):
             delta: the initial penalty strength.
         """
         if not isinstance(model, (ConvexReLU)):
-            raise ValueError(
-                "The AL optimizer can only be used to train ReLU models."
-            )
+            raise ValueError("The AL optimizer can only be used to train ReLU models.")
 
         super().__init__(model)
         self.max_primal_iters = max_primal_iters
@@ -261,9 +258,7 @@ class CVXPYSolver(Optimizer):
 
     supported_solvers: List[str] = ["ecos", "cvxopt", "scs", "gurobi", "mosek"]
 
-    def __init__(
-        self, model: Model, solver, solver_kwargs={}, clean_sol=False
-    ):
+    def __init__(self, model: Model, solver, solver_kwargs={}, clean_sol=False):
         """
         Args:
             model: the model to be optimized. It will be checked for
