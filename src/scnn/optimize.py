@@ -220,7 +220,7 @@ def optimize_model(
         model.bias,
     )
 
-    internal_model = build_internal_model(model, regularizer, X_train)
+    internal_model = build_internal_model(model, regularizer, X_train, X_test)
     opt_procedure = build_optimizer(solver, regularizer, metrics)
     metrics_tuple = build_metrics_tuple(metrics)
 

@@ -29,12 +29,14 @@ class DeepConvexMLP(ConvexMLP):
         kernel: str = operators.EINSUM,
         regularizer: Optional[Regularizer] = None,
         c: int = 1,
+        D_test: Optional[lab.Tensor] = None,
     ) -> None:
         """
         :param d: the dimensionality of the dataset (ie. number of features).
         :param D: array of possible sign patterns.
-        :param U: array of hyperplanes creating the sign patterns.
+        :param U_fn: function giving matrix of possible sign patterns.
         :param kernel: the kernel to drive the matrix-vector operations.
+        :param D_test: array of possible sign for test data patterns.
         """
         super().__init__(regularizer)
 
@@ -46,6 +48,7 @@ class DeepConvexMLP(ConvexMLP):
         )  # one linear model per sign pattern
 
         self.D = D
+        self.D_test = D_test
         self.U_fn = U_fn
         self.kernel = kernel
 
@@ -67,9 +70,14 @@ class DeepConvexMLP(ConvexMLP):
 
     def _signs(self, X: lab.Tensor, D: Optional[lab.Tensor] = None):
         local_D = self.D
+
         if D is not None:
             return D
-        elif not self._train:
-            local_D = lab.tensor(self.U_fn(lab.to_np(X)))
+
+        if not self._train:
+            if self.D_test is not None:
+                local_D = self.D_test
+            else:
+                local_D = lab.tensor(self.U_fn(lab.to_np(X)))
 
         return local_D

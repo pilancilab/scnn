@@ -73,7 +73,10 @@ def build_internal_regularizer(
 
 
 def build_internal_model(
-    model: Model, regularizer: Regularizer, X_train: lab.Tensor
+    model: Model,
+    regularizer: Regularizer,
+    X_train: lab.Tensor,
+    X_test: lab.Tensor,
 ) -> InternalModel:
     """Convert public-facing model objects into private implementations.
 
@@ -81,6 +84,7 @@ def build_internal_model(
         model: a model object from the public API.
         regularizer: a regularizer object from the public API.
         X_train: the :math:`n \\times d` training set.
+        X_test: the :math:`m \\times d` test set.
 
     Returns:
         An internal model object with the same state as the public model.
@@ -118,9 +122,16 @@ def build_internal_model(
             internal_model = ConvexMLP(d, D, G, "einsum", regularizer=internal_reg, c=c)
 
     elif isinstance(model, DeepConvexGatedReLU):
-        D = lab.tensor(model.G_fn(lab.to_np(X_train)))
+        D = lab.tensor(model.G_fn(lab.to_np(X_train)), dtype=lab.get_dtype())
+        D_test = lab.tensor(model.G_fn(lab.to_np(X_test)), dtype=lab.get_dtype())
         internal_model = DeepConvexMLP(
-            d, D, model.G_fn, "einsum", regularizer=internal_reg, c=c
+            d,
+            D,
+            model.G_fn,
+            "einsum",
+            regularizer=internal_reg,
+            c=c,
+            D_test=D_test,
         )
     else:
         raise ValueError(f"Model object {model} not supported.")
