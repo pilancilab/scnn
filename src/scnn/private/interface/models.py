@@ -95,7 +95,7 @@ def build_internal_model(
     G_input = model.G
 
     if model.bias:
-        G_input = np.concatenate([G_input,model.G_bias.reshape([-1,1])],axis=1)
+        G_input = np.concatenate([G_input,model.G_bias.reshape([1,-1])],axis=0)
 
     D, G = lab.all_to_tensor(
         compute_activation_patterns(
