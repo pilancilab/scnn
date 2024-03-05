@@ -19,7 +19,7 @@ Or, clone the repository and manually install:
 
 ```
 git clone https://github.com/pilancilab/scnn.git
-python -m pip install scnn
+python -m pip install ./scnn
 ```
 
 ### Contributions
