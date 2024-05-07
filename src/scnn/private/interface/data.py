@@ -27,7 +27,9 @@ def normalized_into_input_space(
         A :math:`(\\ldots \\times d)` tensor of weights in the original
         input space.
     """
-    return weights / column_norms
+    return np.divide(
+        weights, column_norms, out=np.zeros_like(weights), where=column_norms != 0
+    )
 
 
 def input_into_normalized_space(model_weights, column_norms):

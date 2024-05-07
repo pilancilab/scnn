@@ -63,7 +63,11 @@ def unitize_columns(
     train_set = (X_train, train_set[1])
 
     if test_set is not None:
-        test_set = (test_set[0] / column_norms, test_set[1])
+        X_test, y_test = test_set
+        np.divide(
+            X_test, column_norms, out=np.zeros_like(X_test), where=column_norms != 0
+        )
+        test_set = (X_test, y_test)
 
     return train_set, test_set, column_norms
 
