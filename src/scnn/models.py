@@ -378,6 +378,7 @@ class DeepConvexGatedReLU(GatedModel):
             - g(X): the model predictions for X.
         """
         D = self.compute_activations(X)
+        print(D.shape, X.shape)
 
         if self.bias:
             Z = np.einsum("ij, lkj->lik", X, self.parameters[0]) + self.parameters[1]
