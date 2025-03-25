@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyscnn"
-version = "0.0.9-beta"
+version = "0.0.10"
 authors = [
   { name="Aaron Mishkin", email="amishkin@cs.stanford.edu" },
 ]
@@ -18,11 +18,12 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "numpy>=1.21.3",
-    "torch>=1.10.0",
-    "cvxpy>=1.2.1",
-    "scikit-learn>=1.0.0",
-    "scipy>=1.7.2",
+    "numpy",
+    "torch",
+    "torchvision",
+    "cvxpy",
+    "scikit-learn",
+    "scipy",
     "typing_extensions",
     "tqdm",
     "opt_einsum",
