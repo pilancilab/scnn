@@ -7,8 +7,9 @@ import timeit
 from typing import Any, Dict, List, Optional, Tuple
 
 import scnn.private.loss_functions as loss_fns
+import scnn.private.models.solution_mappings as sm
 import lab
-from scnn.private.models import AL_MLP, ConvexMLP
+from scnn.private.models import AL_MLP, ConvexMLP, DeepConvexMLP
 from scnn.private.models.model import Model
 from scnn.private.interface import get_nc_formulation
 
@@ -70,7 +71,6 @@ def merge_metric_lists(
     lm: Tuple[List[str], List[str], List[str]],
     rm: Optional[Tuple[List[str], List[str], List[str]]] = None,
 ) -> Tuple[List[str], List[str], List[str]]:
-
     if rm is None:
         return lm
 
@@ -311,15 +311,10 @@ def compute_metric(
         nc_model = model
 
         # compute the non-convex model if one exists
-        if isinstance(model, ConvexMLP):
-            nc_model = get_nc_formulation(model)
-
-            # strip off bias column
-            if nc_model.bias:
-                data = X[:, 0:-1], y
-
-            # remove bias columns
-            nc_model._to_lab_tensor()
+        if isinstance(model, DeepConvexMLP):
+            nc_model = model
+        elif isinstance(model, ConvexMLP):
+            nc_model = sm.get_nc_formulation(model, remove_sparse=True)
 
         compute_metric(
             metric_name.split("nc_")[1],

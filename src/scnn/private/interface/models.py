@@ -20,6 +20,7 @@ from scnn.models import (
     Model,
     LinearModel,
     ConvexGatedReLU,
+    DeepConvexGatedReLU,
     NonConvexGatedReLU,
     ConvexReLU,
     NonConvexReLU,
@@ -27,7 +28,11 @@ from scnn.models import (
 
 from scnn.private.models import (
     ConvexMLP,
+<<<<<<< HEAD
     SkipMLP,
+=======
+    DeepConvexMLP,
+>>>>>>> 79136f9fd8cd01d08a6faeef35508b215a26ea2f
     AL_MLP,
     SkipALMLP,
     GroupL1Regularizer,
@@ -77,7 +82,10 @@ def build_internal_regularizer(
 
 
 def build_internal_model(
-    model: Model, regularizer: Regularizer, X_train: lab.Tensor
+    model: Model,
+    regularizer: Regularizer,
+    X_train: lab.Tensor,
+    X_test: lab.Tensor,
 ) -> InternalModel:
     """Convert public-facing model objects into private implementations.
 
@@ -85,11 +93,14 @@ def build_internal_model(
         model: a model object from the public API.
         regularizer: a regularizer object from the public API.
         X_train: the :math:`n \\times d` training set.
+        X_test: the :math:`m \\times d` test set.
 
     Returns:
         An internal model object with the same state as the public model.
     """
-    assert isinstance(model, (LinearModel, ConvexReLU, ConvexGatedReLU))
+    assert isinstance(
+        model, (LinearModel, ConvexReLU, DeepConvexGatedReLU, ConvexGatedReLU)
+    )
 
     internal_model: InternalModel
     d, c = model.d + model.bias, model.c
@@ -98,6 +109,7 @@ def build_internal_model(
     if isinstance(model, LinearModel):
         return LinearRegression(d, c, regularizer=internal_reg)
 
+<<<<<<< HEAD
     G_input = model.G
 
     if model.bias:
@@ -119,13 +131,41 @@ def build_internal_model(
             model_class = AL_MLP
 
         internal_model = model_class(
+=======
+    elif isinstance(model, (ConvexReLU, ConvexGatedReLU)):
+        D, G = lab.all_to_tensor(
+            compute_activation_patterns(
+                lab.to_np(X_train),
+                model.G,
+                bias=model.bias,
+            ),
+            dtype=lab.get_dtype(),
+        )
+
+        if isinstance(model, ConvexReLU):
+            internal_model = AL_MLP(
+                d,
+                D,
+                G,
+                "einsum",
+                delta=1000,
+                regularizer=internal_reg,
+                c=c,
+            )
+        elif isinstance(model, ConvexGatedReLU):
+            internal_model = ConvexMLP(d, D, G, "einsum", regularizer=internal_reg, c=c)
+
+    elif isinstance(model, DeepConvexGatedReLU):
+        D = lab.tensor(model.G_fn(lab.to_np(X_train)), dtype=lab.get_dtype())
+        D_test = lab.tensor(model.G_fn(lab.to_np(X_test)), dtype=lab.get_dtype())
+        internal_model = DeepConvexMLP(
             d,
             D,
-            G,
+            model.G_fn,
             "einsum",
-            delta=1000,
             regularizer=internal_reg,
             c=c,
+            D_test=D_test,
         )
     elif isinstance(model, ConvexGatedReLU):
         if model.skip_connection:
@@ -163,7 +203,6 @@ def extract_bias(weights: lab.Tensor, bias: bool = False) -> List[np.ndarray]:
 def extract_gates_bias(
     G: lab.Tensor, bias: bool = False
 ) -> Tuple[np.ndarray, Optional[np.ndarray]]:
-
     G = lab.to_np(G)
     p = G.shape[-1]
 
@@ -229,6 +268,9 @@ def update_public_model(model: Model, internal_model: InternalModel) -> Model:
         )
 
         model.G, model.G_bias = extract_gates_bias(internal_model.U, model.bias)
+
+    elif isinstance(model, DeepConvexGatedReLU):
+        model.set_parameters(extract_bias(internal_model.weights, model.bias))
     elif isinstance(model, LinearModel):
         model.set_parameters(extract_bias(internal_model.weights, model.bias))
 
