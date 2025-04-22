@@ -142,7 +142,9 @@ def build_internal_model(
             else:
                 model_class = ConvexMLP
 
-            internal_model = ConvexMLP(d, D, G, "einsum", regularizer=internal_reg, c=c)
+            internal_model = model_class(
+                d, D, G, "einsum", regularizer=internal_reg, c=c
+            )
 
     elif isinstance(model, DeepConvexGatedReLU):
         D = lab.tensor(model.G_fn(lab.to_np(X_train)), dtype=lab.get_dtype())
@@ -156,13 +158,6 @@ def build_internal_model(
             c=c,
             D_test=D_test,
         )
-    elif isinstance(model, ConvexGatedReLU):
-        if model.skip_connection:
-            model_class = SkipMLP
-        else:
-            model_class = ConvexMLP
-
-        internal_model = model_class(d, D, G, "einsum", regularizer=internal_reg, c=c)
     else:
         raise ValueError(f"Model object {model} not supported.")
 

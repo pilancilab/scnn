@@ -307,7 +307,6 @@ class ConvexGatedReLU(GatedModel):
 
         self.parameters = parameters[0:2]
 
-        print(parameters)
         if self.skip_model:
             self.skip_model.set_parameters(parameters[2:])
 
