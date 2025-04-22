@@ -122,7 +122,12 @@ def build_internal_model(
         )
 
         if isinstance(model, ConvexReLU):
-            internal_model = AL_MLP(
+            if model.skip_connection:
+                model_class = SkipALMLP
+            else:
+                model_class = AL_MLP
+
+            internal_model = model_class(
                 d,
                 D,
                 G,
@@ -132,6 +137,11 @@ def build_internal_model(
                 c=c,
             )
         elif isinstance(model, ConvexGatedReLU):
+            if model.skip_connection:
+                model_class = SkipMLP
+            else:
+                model_class = ConvexMLP
+
             internal_model = ConvexMLP(d, D, G, "einsum", regularizer=internal_reg, c=c)
 
     elif isinstance(model, DeepConvexGatedReLU):

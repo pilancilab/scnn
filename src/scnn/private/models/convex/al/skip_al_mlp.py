@@ -88,7 +88,6 @@ class SkipALMLP(AL_MLP):
 
         :returns: list of tensors -- [network weights, skip weights].
         """
-
         network_w, skip_w = self._split_weights(self.weights)
 
         # second entry is always zero
