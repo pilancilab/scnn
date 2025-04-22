@@ -28,11 +28,8 @@ from scnn.models import (
 
 from scnn.private.models import (
     ConvexMLP,
-<<<<<<< HEAD
     SkipMLP,
-=======
     DeepConvexMLP,
->>>>>>> 79136f9fd8cd01d08a6faeef35508b215a26ea2f
     AL_MLP,
     SkipALMLP,
     GroupL1Regularizer,
@@ -109,7 +106,6 @@ def build_internal_model(
     if isinstance(model, LinearModel):
         return LinearRegression(d, c, regularizer=internal_reg)
 
-<<<<<<< HEAD
     G_input = model.G
 
     if model.bias:
