@@ -676,10 +676,7 @@ class NonConvexReLU(Model):
             idx = 2
             Z += self.parameters[1]
 
-        if isinstance(Z, np.ndarray):
-            preds = np.maximum(Z, 0) @ self.parameters[idx].T
-        else:
-            preds = lab.smax(Z, 0) @ self.parameters[idx].T
+        preds = np.maximum(Z, 0) @ self.parameters[idx].T
 
         if self.skip_connection:
             preds = preds + self.skip_model(X)

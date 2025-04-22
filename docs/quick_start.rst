@@ -65,7 +65,10 @@ The following example trains the same ReLU model using the object-oriented inter
 
 .. code-block:: python
 
-   from scnn import ConvexReLU, RFISTA, Metrics, optimize_model, sample_gate_vectors
+   from scnn.optimize import optimize_model, sample_gate_vectors
+   from scnn.models import ConvexReLU
+   from scnn.solvers import RFISTA
+   from scnn.metrics import Metrics
 
    # create convex reformulation
    max_neurons = 500

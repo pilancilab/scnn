@@ -5,7 +5,6 @@ TODO:
 """
 
 import lab
-import numpy as np
 
 from scnn.private.utils.data.transforms import (
     unitize_columns,
@@ -27,7 +26,7 @@ def normalized_into_input_space(
         A :math:`(\\ldots \\times d)` tensor of weights in the original
         input space.
     """
-    return weights / column_norms
+    return lab.safe_divide(weights, column_norms)
 
 
 def input_into_normalized_space(model_weights, column_norms):
@@ -82,8 +81,8 @@ def process_data(
 
     # add extra target dimension if necessary
     if len(y_train.shape) == 1:
-        y_train = np.expand_dims(y_train, axis=1)
-        y_test = np.expand_dims(y_test, axis=1)
+        y_train = lab.expand_dims(y_train, axis=1)
+        y_test = lab.expand_dims(y_test, axis=1)
 
     train_set, test_set, col_norms = (X_train, y_train), (X_test, y_test), None
 
