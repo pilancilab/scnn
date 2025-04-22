@@ -106,33 +106,16 @@ def build_internal_model(
     if isinstance(model, LinearModel):
         return LinearRegression(d, c, regularizer=internal_reg)
 
-    G_input = model.G
-
-    if model.bias:
-        G_input = np.concatenate([G_input,model.G_bias.reshape([1,-1])],axis=0)
-
-    D, G = lab.all_to_tensor(
-        compute_activation_patterns(
-            lab.to_np(X_train),
-            G_input,
-            bias=model.bias,
-        ),
-        dtype=lab.get_dtype(),
-    )
-
-    if isinstance(model, ConvexReLU):
-        if model.skip_connection:
-            model_class = SkipALMLP
-        else:
-            model_class = AL_MLP
-
-        internal_model = model_class(
-=======
     elif isinstance(model, (ConvexReLU, ConvexGatedReLU)):
+        G_input = model.G
+
+        if model.bias:
+            G_input = np.concatenate([G_input, model.G_bias.reshape([1, -1])], axis=0)
+
         D, G = lab.all_to_tensor(
             compute_activation_patterns(
                 lab.to_np(X_train),
-                model.G,
+                G_input,
                 bias=model.bias,
             ),
             dtype=lab.get_dtype(),
