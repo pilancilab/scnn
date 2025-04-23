@@ -1,6 +1,6 @@
 """Convex formulation of two-layer Gated ReLU model with skip connections."""
 
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Callable
 
 import lab
 
@@ -18,21 +18,26 @@ class SkipMLP(ConvexMLP):
         self,
         d: int,
         D: lab.Tensor,
-        U: lab.Tensor,
+        U: Optional[lab.Tensor] = None,
+        U_fn: Optional[Callable] = None,
         kernel: str = operators.EINSUM,
         regularizer: Optional[Regularizer] = None,
         c: int = 1,
+        D_test: Optional[lab.Tensor] = None,
     ) -> None:
         """
         :param d: the dimensionality of the dataset (ie. number of features).
         :param D: array of possible sign patterns.
         :param U: array of hyperplanes creating the sign patterns.
+            Either U or U_fn must not be None.
+        :param U_fn: function giving matrix of possible sign patterns.
+            Either U or U_fn must not be None.
         :param kernel: the kernel to drive the matrix-vector operations.
         :param regularizer: (optional) a penalty function controlling the flexibility of the model.
+        :param D_test: array of possible sign patterns for test data patterns.
         """
-        super().__init__(d, D, U, kernel, regularizer, c)
+        super().__init__(d, D, U, U_fn, kernel, regularizer, c, D_test)
 
-        # include positive and negative skip connections.
         self.weights = lab.zeros((self.c, self.p + 1, self.d))
 
     def set_weights(self, weights: lab.Tensor):

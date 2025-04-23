@@ -3,13 +3,14 @@
 TODO:
     - Active features should not take into account inactive neurons.
 """
+
 import timeit
 from typing import Any, Dict, List, Optional, Tuple
 
 import scnn.private.loss_functions as loss_fns
 import scnn.private.models.solution_mappings as sm
 import lab
-from scnn.private.models import AL_MLP, ConvexMLP, DeepConvexMLP
+from scnn.private.models import ConvexMLP
 from scnn.private.models.model import Model
 from scnn.private.interface import get_nc_formulation
 
@@ -311,7 +312,7 @@ def compute_metric(
         nc_model = model
 
         # compute the non-convex model if one exists
-        if isinstance(model, DeepConvexMLP):
+        if model.U_fn is not None:
             nc_model = model
         elif isinstance(model, ConvexMLP):
             nc_model = sm.get_nc_formulation(model, remove_sparse=True)

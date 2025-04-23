@@ -29,7 +29,6 @@ from scnn.models import (
 from scnn.private.models import (
     ConvexMLP,
     SkipMLP,
-    DeepConvexMLP,
     AL_MLP,
     SkipALMLP,
     GroupL1Regularizer,
@@ -131,7 +130,7 @@ def build_internal_model(
                 d,
                 D,
                 G,
-                "einsum",
+                kernel="einsum",
                 delta=1000,
                 regularizer=internal_reg,
                 c=c,
@@ -143,17 +142,22 @@ def build_internal_model(
                 model_class = ConvexMLP
 
             internal_model = model_class(
-                d, D, G, "einsum", regularizer=internal_reg, c=c
+                d, D, G, kernel="einsum", regularizer=internal_reg, c=c
             )
 
     elif isinstance(model, DeepConvexGatedReLU):
+        if model.skip_connection:
+            model_class = SkipMLP
+        else:
+            model_class = ConvexMLP
+
         D = lab.tensor(model.G_fn(lab.to_np(X_train)), dtype=lab.get_dtype())
         D_test = lab.tensor(model.G_fn(lab.to_np(X_test)), dtype=lab.get_dtype())
-        internal_model = DeepConvexMLP(
+        internal_model = model_class(
             d,
             D,
-            model.G_fn,
-            "einsum",
+            U_fn=model.G_fn,
+            kernel="einsum",
             regularizer=internal_reg,
             c=c,
             D_test=D_test,

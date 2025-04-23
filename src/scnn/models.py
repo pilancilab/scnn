@@ -360,6 +360,8 @@ class DeepConvexGatedReLU(GatedModel):
         p: the number of neurons.
         bias: whether or not the model uses a bias term.
         G_fn: a function that can be called to obtain activation patterns.
+        skip_connection: whether or not the model includes a linear skip
+            connection.
         parameters: the parameters of the model stored as a list of tensors.
     """
 
@@ -370,6 +372,7 @@ class DeepConvexGatedReLU(GatedModel):
         p: int,
         c: int = 1,
         bias: bool = False,
+        skip_connection: bool = False,
     ) -> None:
         """Construct a new convex Gated ReLU model.
 
@@ -379,12 +382,20 @@ class DeepConvexGatedReLU(GatedModel):
             p: the number of neurons.
             c: the output dimension.
             bias: whether or not to include a bias term.
+            skip_connection: whether or not the model should include a linear
+                skip connection.
         """
         self.G_fn = G_fn
         self.d = d
         self.p = p
         self.c = c
         self.bias = bias
+        self.skip_connection = skip_connection
+
+        self.skip_model: Optional[LinearModel] = None
+
+        if self.skip_connection:
+            self.skip_model = LinearModel(self.d, self.c, self.bias)
 
         # one linear model per gate vector
         if self.bias:
@@ -410,7 +421,12 @@ class DeepConvexGatedReLU(GatedModel):
 
     def get_parameters(self) -> List[np.ndarray]:
         """Get the model parameters."""
-        return self.parameters
+        params = self.parameters
+
+        if self.skip_model is not None:
+            params = params + self.skip_model.get_parameters()
+
+        return params
 
     def set_parameters(self, parameters: List[np.ndarray]):
         """Set the model parameters.
@@ -425,6 +441,10 @@ class DeepConvexGatedReLU(GatedModel):
         if self.bias:
             assert parameters[1].shape == (self.c, self.p)
 
+        if self.skip_model is not None:
+            self.skip_model.set_parameters(parameters[2])
+            parameters = parameters[0:2]
+
         self.parameters = parameters
 
     def __call__(self, X: np.ndarray) -> np.ndarray:
@@ -438,14 +458,17 @@ class DeepConvexGatedReLU(GatedModel):
             - g(X): the model predictions for X.
         """
         D = self.compute_activations(X)
-        print(D.shape, X.shape)
-
         if self.bias:
             Z = np.einsum("ij, lkj->lik", X, self.parameters[0]) + self.parameters[1]
 
-            return np.einsum("lik, ik->il", Z, D)
+            preds = np.einsum("lik, ik->il", Z, D)
         else:
-            return np.einsum("ij, lkj, ik->il", X, self.parameters[0], D)
+            preds = np.einsum("ij, lkj, ik->il", X, self.parameters[0], D)
+
+        if self.skip_model is not None:
+            preds += self.skip_model(X)
+
+        return preds
 
 
 class NonConvexGatedReLU(GatedModel):

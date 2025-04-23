@@ -1,6 +1,6 @@
 """Convex formulations of neural networks."""
 
-from typing import Optional, List, Tuple, Dict
+from typing import Optional, List, Tuple, Dict, Callable
 from math import ceil
 
 from scipy.sparse.linalg import LinearOperator  # type: ignore
@@ -24,16 +24,22 @@ class ConvexMLP(Model):
         self,
         d: int,
         D: lab.Tensor,
-        U: lab.Tensor,
+        U: Optional[lab.Tensor] = None,
+        U_fn: Optional[Callable] = None,
         kernel: str = operators.EINSUM,
         regularizer: Optional[Regularizer] = None,
         c: int = 1,
+        D_test: Optional[lab.Tensor] = None,
     ) -> None:
         """
         :param d: the dimensionality of the dataset (ie. number of features).
         :param D: array of possible sign patterns.
         :param U: array of hyperplanes creating the sign patterns.
+            Either U or U_fn must not be None.
+        :param U_fn: function giving matrix of possible sign patterns.
+            Either U or U_fn must not be None.
         :param kernel: the kernel to drive the matrix-vector operations.
+        :param D_test: array of possible sign patterns for test data patterns.
         """
         super().__init__(regularizer)
 
@@ -46,6 +52,10 @@ class ConvexMLP(Model):
 
         self.D = D
         self.U = U
+        self.U_fn = U_fn
+        assert self.U is not None or self.U_fn is not None
+
+        self.D_test = D_test
         self.kernel = kernel
 
         (
@@ -72,11 +82,21 @@ class ConvexMLP(Model):
 
     def _signs(self, X: lab.Tensor, D: Optional[lab.Tensor] = None):
         local_D = self.D
+
         if D is not None:
             return D
-        elif not self._train:
+
+        if not self._train and self.U is not None:
             local_D = relu(X @ self.U)
             local_D[local_D > 0] = 1
+        if not self._train:
+            if self.D_test is not None:
+                local_D = self.D_test
+            elif self.U_fn is not None:
+                local_D = lab.tensor(self.U_fn(lab.to_np(X)))
+            elif self.U is not None:
+                local_D = relu(X @ self.U)
+                local_D[local_D > 0] = 1
 
         return local_D
 
@@ -144,9 +164,7 @@ class ConvexMLP(Model):
         :param scaling: (optional) scaling parameter for the objective. Defaults to `n * c`.
         :returns: the gradient
         """
-        grad = self._gradient(w, X, y, self._signs(X, D)) / self._scaling(
-            y, scaling
-        )
+        grad = self._gradient(w, X, y, self._signs(X, D)) / self._scaling(y, scaling)
 
         if flatten:
             grad = grad.reshape(-1)
@@ -199,9 +217,7 @@ class ConvexMLP(Model):
             def transpose(v):
                 return lab.squeeze(self._data_t_mvp(v, X=X, D=local_D))
 
-        op = MatVecOperator(
-            shape=(n, pd), forward=forward, transpose=transpose
-        )
+        op = MatVecOperator(shape=(n, pd), forward=forward, transpose=transpose)
 
         return op
 
@@ -223,9 +239,7 @@ class ConvexMLP(Model):
 
             # initialize new model components at 0.
             added_weights = lab.zeros((self.c, weights.shape[0], self.d))
-            self.weights = lab.concatenate(
-                [self.weights, added_weights], axis=1
-            )
+            self.weights = lab.concatenate([self.weights, added_weights], axis=1)
 
             # filter out the zero column.
             if remove_zero:
