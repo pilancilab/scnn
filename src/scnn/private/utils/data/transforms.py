@@ -64,7 +64,7 @@ def unitize_columns(
 
     if test_set is not None:
         X_test, y_test = test_set
-        np.divide(
+        X_test = np.divide(
             X_test, column_norms, out=np.zeros_like(X_test), where=column_norms != 0
         )
         test_set = (X_test, y_test)
