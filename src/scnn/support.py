@@ -5,6 +5,7 @@ TODO:
     - Extract support from linear model.
     - Extract support by forward/backward.
 """
+
 from typing import List, Tuple, Optional
 
 import numpy as np
@@ -32,10 +33,11 @@ class SupportFinder:
         model: Model,
         regularizer: Optional[Regularizer],
         solver: Optimizer,
-        train_set: Tuple[np.ndarray, np.ndarray],
+        train_set: tuple[np.ndarray, np.ndarray],
         device,
         dtype,
         seed,
+        feature_weights: Optional[list[float]],
     ) -> List[int]:
         raise NotImplementedError(
             "A SupportFinder must be callable to obtain \

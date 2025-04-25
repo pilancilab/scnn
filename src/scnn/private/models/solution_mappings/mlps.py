@@ -55,7 +55,6 @@ def grelu_solution_mapping(weights, G, remove_sparse: bool = False):
 
 
 def relu_solution_mapping(weights, G, remove_sparse: bool = False):
-    print(weights.shape)
     assert len(weights.shape) == 4
 
     weight_norms = (lab.sum(weights**2, axis=-1, keepdims=True)) ** (1 / 4)
