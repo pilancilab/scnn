@@ -267,12 +267,13 @@ def update_public_model(model: Model, internal_model: InternalModel) -> Model:
 
 def get_nc_formulation(
     internal_model: InternalModel,
+    remove_sparse: bool = True,
 ) -> Model:
     """Construct a public-facing model from an internal model representation.
 
     Args:
         internal_model: the internal model.
-        bias: whether or not the model contains a bias.
+        remove_sparse: whether or not to remove zero neurons.
 
     Returns:
         A public-facing model with identical state.
@@ -321,7 +322,7 @@ def get_nc_formulation(
         w1, w2 = relu_solution_mapping(
             weights,
             internal_model.U,
-            remove_sparse=True,
+            remove_sparse=remove_sparse,
         )
         nc_model = NonConvexReLU(
             d, w1.shape[0], internal_model.c, bias=bias, skip_connection=skip_connection

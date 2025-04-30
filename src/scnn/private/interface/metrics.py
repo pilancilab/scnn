@@ -57,7 +57,7 @@ def build_metrics_tuple(
             test_metrics.append("nc_accuracy")
         # use non-convex model for testing
         elif key == "test_mse":
-            test_metrics.append("squared_error")
+            test_metrics.append("nc_squared_error")
         elif key == "active_neurons":
             additional_metrics.append("active_neurons")
         elif key == "neuron_sparsity":
@@ -114,7 +114,7 @@ def update_public_metrics(
         elif key == "test_nc_accuracy":
             metrics.test_accuracy = value
         # use non-convex model for testing
-        elif key == "test_squared_error":
+        elif key == "test_nc_squared_error":
             metrics.test_mse = value
         elif key == "active_neurons":
             metrics.active_neurons = value

@@ -327,7 +327,11 @@ def compute_metric(
         if model.U_fn is not None:
             nc_model = model
         elif isinstance(model, ConvexMLP):
-            nc_model = sm.get_nc_formulation(model, remove_sparse=True)
+            nc_model = get_nc_formulation(model, remove_sparse=False)
+
+            # strip off bias if necessary
+            if nc_model.bias:
+                X = X[:, :-1]
 
         compute_metric(
             metric_name.split("nc_")[1],
@@ -335,7 +339,7 @@ def compute_metric(
             dict_key,
             nc_model,
             sp_exit_state,
-            data,
+            (X, y),
             None,
             None,
             batch_size,
