@@ -14,6 +14,8 @@ from scnn.private.models import ConvexMLP
 from scnn.private.models.model import Model
 from scnn.private.interface import get_nc_formulation
 
+from sklearn.metrics import roc_auc_score
+
 
 def as_list(x: Any) -> List[Any]:
     """Wrap argument into a list if it is not iterable.
@@ -226,6 +228,16 @@ def compute_metric(
         metric = lab.to_scalar(
             loss_fns.squared_error(model(X, batch_size=batch_size), y) / y.shape[0]
         )
+    elif metric_name == "r_squared":
+        num = loss_fns.squared_error(model(X, batch_size=batch_size), y)
+        denom = lab.sum((y - lab.mean(y)) ** 2)
+        metric = 1 - lab.to_scalar(num / denom)
+    elif metric_name == "auc":
+        scores = model(X, batch_size=batch_size)
+        scores_np = lab.to_np(scores)
+        y_np = (lab.to_np(y) + 1) / 2
+        metric = roc_auc_score(y_np, scores_np)
+
     elif metric_name == "grad_norm":
         if grad is None:
             grad = model.grad(X, y, batch_size=batch_size)

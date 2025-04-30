@@ -1,12 +1,11 @@
-"""Metrics that can be recorded while training models.
-"""
+"""Metrics that can be recorded while training models."""
+
 from typing import Dict
 
 import numpy as np
 
 
 class Metrics(object):
-
     """Metrics collected while optimizing models.
 
     By default, only the objective, training time, and norm of the
@@ -40,6 +39,11 @@ class Metrics(object):
             model (ie. all weights are exactly zero for those features).
         active_features: the number of features currently used by the model.
         weight_sparsity: proportion of weights are which zero.
+        weight_sparsity: the R^2 coefficient, also called the coefficient
+            of determination.
+        r_squared: the R^2 metric, also called the coefficient of
+            determination.
+        auc: area under the ROC curve.
         metric_freq: the frequency (in iterations) at which metrics should be
             collected in iterations.
         metrics_to_collect: internal dictionary specifying which metrics
@@ -66,6 +70,8 @@ class Metrics(object):
     active_features: np.ndarray
     active_weights: np.ndarray
     weight_sparsity: np.ndarray
+    r_squared: np.ndarray
+    auc: np.ndarray
 
     def __init__(
         self,
@@ -88,6 +94,8 @@ class Metrics(object):
         active_features: bool = False,
         active_weights: bool = False,
         weight_sparsity: bool = False,
+        r_squared: bool = False,
+        auc: bool = False,
     ):
         """
         Args:
@@ -119,6 +127,9 @@ class Metrics(object):
             active_features: number of features used by the model.
             active_features: number of features used by the model.
             weight_sparsity: proportion of weights are which zero.
+            r_squared: the R^2 metric, also called the coefficient of
+                determination.
+            auc: area under the ROC curve.
         """
 
         self.metric_freq = metric_freq
@@ -141,6 +152,8 @@ class Metrics(object):
             "active_features": active_features,
             "active_weights": active_weights,
             "weight_sparsity": weight_sparsity,
+            "r_squared": r_squared,
+            "auc": auc,
         }
 
         if test_mse or test_accuracy:
@@ -191,5 +204,9 @@ class Metrics(object):
             metrics["active_weights"] = self.active_weights
         if self.metrics_to_collect["weight_sparsity"]:
             metrics["weight_sparsity"] = self.weight_sparsity
+        if self.metrics_to_collect["r_squared"]:
+            metrics["r_squared"] = self.r_squared
+        if self.metrics_to_collect["auc"]:
+            metrics["auc"] = self.auc
 
         return metrics

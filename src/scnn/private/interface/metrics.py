@@ -1,5 +1,6 @@
 """Convert metrics from :module:`scnn.metrics` into internal
 representations."""
+
 from typing import Tuple, List, Dict, Any
 from copy import deepcopy
 
@@ -47,6 +48,10 @@ def build_metrics_tuple(
         # use convex model for training (same as non-convex)
         elif key == "train_mse":
             train_metrics.append("squared_error")
+        elif key == "r_squared":
+            train_metrics.append("r_squared")
+        elif key == "auc":
+            train_metrics.append("auc")
         # use non-convex model for testing
         elif key == "test_accuracy":
             test_metrics.append("nc_accuracy")
@@ -101,6 +106,10 @@ def update_public_metrics(
         # use convex model for training (same as non-convex)
         elif key == "train_squared_error":
             metrics.train_mse = value
+        elif key == "train_r_squared":
+            metrics.r_squared = value
+        elif key == "train_auc":
+            metrics.auc = value
         # use non-convex model for testing
         elif key == "test_nc_accuracy":
             metrics.test_accuracy = value
