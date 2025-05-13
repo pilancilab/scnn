@@ -56,6 +56,8 @@ def optimize(
     X_test: Optional[np.ndarray] = None,
     y_test: Optional[np.ndarray] = None,
     regularizer: Optional[Regularizer] = None,
+    loss_type: str = "least squares",
+    huber_delta = None,
     bias: bool = False,
     return_convex: bool = False,
     unitize_data: bool = True,
@@ -135,6 +137,8 @@ def optimize(
         y_train,
         X_test,
         y_test,
+        loss_type,
+        huber_delta,
         regularizer,
         return_convex,
         unitize_data,
@@ -154,6 +158,8 @@ def optimize_model(
     y_train: np.ndarray,
     X_test: Optional[np.ndarray] = None,
     y_test: Optional[np.ndarray] = None,
+    loss_type: str = "least squares",
+    huber_delta = None,
     regularizer: Optional[Regularizer] = None,
     return_convex: bool = False,
     unitize_data: bool = True,
@@ -220,7 +226,7 @@ def optimize_model(
         model.bias,
     )
 
-    internal_model = build_internal_model(model, regularizer, X_train)
+    internal_model = build_internal_model(model, regularizer, X_train, loss_type, huber_delta)
     opt_procedure = build_optimizer(solver, regularizer, metrics)
     metrics_tuple = build_metrics_tuple(metrics)
 
