@@ -1,8 +1,4 @@
-import sys
-sys.path.insert(0, "/Users/nika/PycharmProjects/scnn/src")
-
 import numpy as np
-import matplotlib.pyplot as plt
 import torch
 
 
