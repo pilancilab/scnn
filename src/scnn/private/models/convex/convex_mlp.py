@@ -11,7 +11,7 @@ from scnn.private.models.model import Model
 from scnn.private.models.regularizers import Regularizer
 from . import operators
 from scnn.private.utils import MatVecOperator
-from scnn.private.loss_functions import squared_error, relu
+from scnn.private.loss_functions import squared_error, relu, huber_loss
 
 # two-layer MLPs with ReLU activations.
 
@@ -296,3 +296,80 @@ class ConvexMLP(Model):
         """
 
         return lab.sign(relu(X @ self.U)), self.U.T
+
+
+class HuberMLP(ConvexMLP):
+    """Convex formulation of a two-layer neural network (multi-layer
+    perceptron) with ReLU activations."""
+
+    def __init__(
+            self,
+            *args,
+            huber_delta: float,
+            **kwargs
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.huber_delta = huber_delta
+
+    def _objective(
+        self,
+        X: lab.Tensor,
+        y: lab.Tensor,
+        w: lab.Tensor,
+        D: Optional[lab.Tensor] = None,
+        scaling: Optional[float] = None,
+        **kwargs,
+    ) -> float:
+        """Compute the Huber objective with respect to the model weights.
+
+        :param X: (n,d) array containing the data examples.
+        :param y: (n,d) array containing the data targets.
+        :param w: parameter at which to compute the objective.
+        :param D: (optional) specific activation matrix at which to compute the forward pass.
+        Defaults to self.D or manual computation depending on the value of self._train.
+        :param scaling: (optional) scaling parameter for the objective. Defaults to `n * c`.
+        :returns: the objective
+        """
+
+        return huber_loss(self._forward(X, w, D), y, self.huber_delta) / (
+            self._scaling(y, scaling)
+        )
+
+    def _gradient_huber(self, w, X, y, signs):
+        delta = self.huber_delta
+        error = self._data_mvp(w, X, signs) - y
+        mask_small = lab.abs(error) <= delta
+
+        huber_residuals = lab.where(mask_small, error, delta * lab.sign(error))
+
+        return lab.einsum("ij, il, ik->ljk", signs, huber_residuals, X).reshape(*w.shape)
+
+    def _grad(
+        self,
+        X: lab.Tensor,
+        y: lab.Tensor,
+        w: lab.Tensor,
+        D: Optional[lab.Tensor] = None,
+        flatten: bool = False,
+        scaling: Optional[float] = None,
+        **kwargs,
+    ) -> lab.Tensor:
+        """Compute the gradient of the l2 objective with respect to the model
+        weights. As in 'self.__call__' above, we could optimize this by
+        implementing it in a faster low-level language.
+
+        :param X: (n,d) array containing the data examples.
+        :param y: (n,d) array containing the data targets.
+        :param w: parameter at which to compute the gradient.
+        :param D: (optional) specific activation matrix at which to compute the forward pass.
+        Defaults to self.D or manual computation depending on the value of self._train.
+        :param flatten: whether or not to flatten the blocks of the gradient into a single vector.
+        :param scaling: (optional) scaling parameter for the objective. Defaults to `n * c`.
+        :returns: the gradient
+        """
+        grad = self._gradient_huber(w, X, y, self._signs(X, D)) / self._scaling(y, scaling)
+
+        if flatten:
+            grad = grad.reshape(-1)
+
+        return grad

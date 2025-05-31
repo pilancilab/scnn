@@ -10,6 +10,25 @@ import lab
 # loss functions
 
 
+def huber_loss(preds: lab.Tensor, y: lab.Tensor, delta: float) -> float:
+    """Compute the Huber loss,
+
+        $L(y, preds) = \sum_i L_i(y_i, preds_i)$
+        $L_i(y_i, preds_i) = 0.5 * (y_i - preds_i)^2$ if |y_i - preds_i| <= delta
+                            = delta * (|y_i - preds_i| - 0.5 * delta) otherwise
+    :param preds: predictions.
+    :param y: targets.
+    :param delta: threshold for Huber loss.
+    :returns: huber loss
+    """
+    abs_residuals = lab.abs(y - preds)
+
+    quadratic = 0.5 * abs_residuals ** 2
+    linear = delta * (abs_residuals - 0.5 * delta)
+
+    return lab.sum(lab.where(abs_residuals <= delta, quadratic, linear))
+
+
 def squared_error(preds: lab.Tensor, y: lab.Tensor) -> float:
     """Compute squared loss,
 

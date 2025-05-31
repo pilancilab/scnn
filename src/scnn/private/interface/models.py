@@ -26,6 +26,7 @@ from scnn.models import (
 
 from scnn.private.models import (
     ConvexMLP,
+    HuberMLP,
     AL_MLP,
     ReLUMLP,
     GatedReLUMLP,
@@ -71,7 +72,7 @@ def build_internal_regularizer(
 
 
 def build_internal_model(
-    model: Model, regularizer: Regularizer, X_train: lab.Tensor
+    model: Model, regularizer: Regularizer, X_train: lab.Tensor, loss_type: str = "least squares", huber_delta: Optional[float] = None
 ) -> InternalModel:
     """Convert public-facing model objects into private implementations.
 
@@ -117,7 +118,13 @@ def build_internal_model(
             c=c,
         )
     elif isinstance(model, ConvexGatedReLU):
-        internal_model = ConvexMLP(d, D, G, "einsum", regularizer=internal_reg, c=c)
+        if loss_type == "least squares":
+            internal_model = ConvexMLP(d, D, G, "einsum", regularizer=internal_reg, c=c)
+        elif loss_type == "huber":
+            assert huber_delta is not None and huber_delta > 0
+            internal_model = HuberMLP(d, D, G, "einsum", regularizer=internal_reg, c=c, huber_delta=huber_delta)
+        else:
+            raise ValueError(f"Loss type {loss_type} not supported.")
     else:
         raise ValueError(f"Model object {model} not supported.")
 

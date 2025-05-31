@@ -12,6 +12,7 @@ from .non_convex import (
 
 from .convex import (
     ConvexMLP,
+    HuberMLP,
     AL_MLP,
 )
 
@@ -47,6 +48,7 @@ __all__ = [
     "GatedReLUMLP",
     "GatedReLULayer",
     "ConvexMLP",
+    "HuberMLP",
     "AL_MLP",
     "QuadraticDecomposition",
     "OneVsAllModel",
